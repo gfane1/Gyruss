@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Gyruss HTML5 v6.1</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { 
+      margin: 0; 
+      padding: 0; 
+      background: #000; 
+      color: #ddd; 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .wrap { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      height: 100vh;
+      gap: 8px; 
+      padding: 10px; 
+      box-sizing: border-box;
+    }
+    canvas { 
+      background: #000; 
+      border: 1px solid #111; 
+      touch-action: manipulation;
+      max-width: 100%;
+      max-height: calc(100vh - 80px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+    .hint { 
+      color: #a9bcd0; 
+      font-size: 13px; 
+      text-align: center;
+      padding: 0 10px;
+    }
+    .kbd { 
+      padding: 1px 6px; 
+      border: 1px solid #5a6b7c; 
+      background: #0b0f14; 
+      border-radius: 4px; 
+    }
+    .sound-btn {
+      display: inline-block;
+      min-width: 30px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sound-btn[aria-pressed="false"] {
+      opacity: 0.55;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="gameCanvas" width="900" height="900" aria-label="Gyruss HTML5 v5.4"></canvas>
+    <div class="hint">
+      Controls: <span class="kbd">←/→</span> rotate • <span class="kbd">Space</span> fire •
+      <span class="kbd">T</span> invulnerable • <span class="kbd">W</span> warp • <span class="kbd">B</span> boss • <button id="soundToggle" class="kbd sound-btn" aria-pressed="true" title="Toggle sound (S)">S</button> • <span class="kbd">R</span> restart.
+      <br/>Music: put <code>bgm.mp3</code> beside this file; it starts on first key press.
+    </div>
+  </div>
+  <audio id="bgmAudio" src="bgm.mp3" loop preload="auto"></audio>
+  <script src="src/utils.js"></script>
+  <script src="src/audio.js"></script>
+  <script src="src/entities.js"></script>
+  <script src="src/boss.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
