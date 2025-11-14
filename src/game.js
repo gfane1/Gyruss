@@ -34,7 +34,9 @@ Gyruss.Game = {
   gameOverTimer: 0,
   planetIndex: 0,
   warpsToPlanet: 3,
-  satelliteChain: 0,
+  satelliteWavesCompleted: 0,
+  satellitesDestroyed: 0,
+  satellitesInCurrentWave: 0,
 
   // Entities
   player: null,
@@ -127,7 +129,9 @@ Gyruss.Game = {
     this.gameOverTimer = 0;
     this.planetIndex = 0;
     this.warpsToPlanet = 3;
-    this.satelliteChain = 0;
+    this.satelliteWavesCompleted = 0;
+    this.satellitesDestroyed = 0;
+    this.satellitesInCurrentWave = 0;
     if (!this.player) this.player = new Gyruss.Player();
     this.player.reset();
     this.bullets.length = this.enemies.length = this.particles.length = 
@@ -142,7 +146,9 @@ Gyruss.Game = {
     this.worldTime = 0;
     Gyruss.Audio.sfx.play('warp');
     this.player.hitTimer = 3.0;
-    this.satelliteChain = 0;
+    this.satelliteWavesCompleted = 0;
+    this.satellitesDestroyed = 0;
+    this.satellitesInCurrentWave = 0;
     this.score += 1000;
     [...this.enemies, ...this.satellites].forEach(e => {
       const pos = e.getPos();
@@ -156,12 +162,13 @@ Gyruss.Game = {
           this.state = 'boss';
           this.planetIndex++;
           this.warpsToPlanet = 1;
-          this.boss = new Gyruss.CosmicSerpent();
+          // Progressive boss based on planet progression
+          const bossIndex = Math.min(2, Math.floor(this.planetIndex / 3));
+          this.boss = this.createBoss(bossIndex);
         } else {
           this.state = 'bonus';
           this.planetIndex++;
           this.warpsToPlanet = 3;
-          this.satelliteChain = 0;
           this.spawnBonusWave();
         }
       } else {
@@ -180,8 +187,27 @@ Gyruss.Game = {
   },
 
   spawnExplosion(x, y, color, count) {
-    for (let i = 0; i < count; i++) this.particles.push(new Gyruss.Particle(x, y, color));
-    Gyruss.Audio.sfx.play('explosion');
+    // Main explosion particles
+    for (let i = 0; i < count * 0.6; i++) {
+      this.particles.push(new Gyruss.Particle(x, y, color, 'normal'));
+    }
+    
+    // Sparks
+    for (let i = 0; i < count * 0.3; i++) {
+      this.particles.push(new Gyruss.Particle(x, y, '#ffffff', 'spark'));
+    }
+    
+    // Smoke trails
+    for (let i = 0; i < count * 0.1; i++) {
+      this.particles.push(new Gyruss.Particle(x, y, '#666666', 'smoke'));
+    }
+    
+    // Use big explosion for large particle counts (boss explosions)
+    if (count >= 100) {
+      Gyruss.Audio.sfx.play('bigExplosion');
+    } else {
+      Gyruss.Audio.sfx.play('explosion');
+    }
   },
 
   spawnNextWave() {
@@ -242,6 +268,8 @@ Gyruss.Game = {
     this.satellites.push(new Gyruss.Satellite(centerAngle - 0.2, false));
     this.satellites.push(new Gyruss.Satellite(centerAngle, true));
     this.satellites.push(new Gyruss.Satellite(centerAngle + 0.2, false));
+    this.satellitesInCurrentWave = 3;
+    this.satellitesDestroyed = 0;
   },
 
   spawnBonusWave() {
@@ -258,12 +286,25 @@ Gyruss.Game = {
   },
 
   skipToBoss() {
-    if (this.state !== 'playing' && this.state !== 'bonus') return;
-    this.state = 'boss';
-    this.planetIndex = Gyruss.C.PLANETS.length - 1;
-    this.warpsToPlanet = 1;
-    this.boss = new Gyruss.CosmicSerpent();
+    if (this.state === 'boss') {
+      this.currentBossIndex = (this.currentBossIndex + 1) % 3;
+    } else {
+      this.state = 'boss';
+      if (this.currentBossIndex === undefined) this.currentBossIndex = 0;
+      else this.currentBossIndex = (this.currentBossIndex + 1) % 3;
+    }
+    
+    this.boss = this.createBoss(this.currentBossIndex);
     this.enemies.length = this.satellites.length = this.enemyBullets.length = 0;
+  },
+
+  createBoss(bossIndex) {
+    switch(bossIndex) {
+      case 0: return new Gyruss.CosmicSerpent();
+      case 1: return new Gyruss.StarDestroyer();
+      case 2: return new Gyruss.GalacticCore();
+      default: return new Gyruss.CosmicSerpent();
+    }
   },
 
   initStarfield(count) {
@@ -294,7 +335,7 @@ Gyruss.Game = {
 
     // Quick warp for testing
     if (this.keysPressed['KeyW']) this.triggerWarp();
-    // Skip to boss for testing
+    // Skip to boss for testing - works in any state now
     if (this.keysPressed['KeyB']) this.skipToBoss();
     
     if (this.state === 'attract') return;
@@ -322,15 +363,15 @@ Gyruss.Game = {
       if (this.spawnTimer <= 0) {
         if (this.state === 'playing') {
           if (this.wave % 3 === 0) {
-            if (this.satelliteChain < 3) {
+            // Check if we need to spawn satellites or if we've completed the satellite phase
+            if (this.satelliteWavesCompleted < 3 && this.satellites.length === 0) {
               this.spawnSatelliteWave();
-              this.satelliteChain++;
-            } else {
-              this.satelliteChain = 0;
+              this.satelliteWavesCompleted++;
+            } else if (this.satelliteWavesCompleted >= 3 || this.satellitesDestroyed >= this.satellitesInCurrentWave) {
+              this.satelliteWavesCompleted = 0;
               this.triggerWarp();
             }
           } else {
-            this.satelliteChain = 0;
             this.spawnNextWave();
           }
         } else { // Bonus stage cleared
@@ -399,7 +440,9 @@ Gyruss.Game = {
       for (let j = this.satellites.length - 1; j >= 0; j--) {
         checkHit(this.satellites[j], 15 * 15, (sat, pos) => {
           this.score += sat.points;
+          this.satellitesDestroyed++;
           if (sat.isPowerUp) {
+            Gyruss.Audio.sfx.play('powerUp'); // Power-up pickup sound
             if (sat.powerUpType in Gyruss.C.WEAPONS) {
               this.player.setWeapon(sat.powerUpType);
             } else {
@@ -416,17 +459,13 @@ Gyruss.Game = {
       }
 
       // vs Boss
-      if (this.boss) {
-        for (let i = 0; i < this.boss.segments.length; i++) {
-          if (bulletHit) break;
-          const seg = this.boss.segments[i];
-          const segPos = Gyruss.Utils.polarToCartesian(seg.angle, seg.radius);
-          if (Gyruss.Utils.distSq(bulletPos.x, bulletPos.y, segPos.x, segPos.y) < (seg.isHead ? 25*25 : 15*15)) {
-            this.boss.takeDamage(i);
-            Gyruss.Audio.sfx.play('hit');
-            this.bullets.splice(i, 1);
-            bulletHit = true;
-          }
+      if (this.boss && !bulletHit) {
+        const hitResult = this.boss.checkBulletCollision(bulletPos.x, bulletPos.y);
+        if (hitResult.hit) {
+          this.boss.takeDamage(hitResult.segmentIndex, this.bullets[i].damage || 1);
+          Gyruss.Audio.sfx.play('hit');
+          this.bullets.splice(i, 1);
+          bulletHit = true;
         }
       }
     }
@@ -467,8 +506,29 @@ Gyruss.Game = {
     
     if (this.state === 'warp') {
       const progress = Math.min(1, this.worldTime / 2.6);
+      
+      // Warp tunnel effect
       this.ctx.fillStyle = `rgba(110, 210, 255, ${0.35 + 0.25 * Math.sin(progress * Math.PI)})`;
       this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+      
+      // Show destination planet
+      if (progress > 0.3 && this.planetIndex < Gyruss.C.PLANETS.length) {
+        const planetProgress = Math.min(1, (progress - 0.3) / 0.7);
+        this.drawPlanet(Gyruss.C.PLANETS[this.planetIndex], planetProgress);
+        
+        // Planet name
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowColor = '#ffffff';
+        this.ctx.textAlign = 'center';
+        this.ctx.font = '32px "Segoe UI", Tahoma, sans-serif';
+        this.ctx.globalAlpha = planetProgress;
+        this.ctx.fillText(Gyruss.C.PLANETS[this.planetIndex], Gyruss.C.CX, Gyruss.C.CY + 200);
+        this.ctx.globalAlpha = 1;
+        this.ctx.shadowBlur = 0;
+      }
+      
+      // Warp text
       this.ctx.fillStyle = '#e9fbff';
       this.ctx.textAlign = 'center';
       this.ctx.font = '36px "Segoe UI", Tahoma, sans-serif';
@@ -499,22 +559,324 @@ Gyruss.Game = {
     this.ctx.fillText(text, Gyruss.C.CX, Gyruss.C.CY + yOffset);
   },
 
+  drawPlanet(planetName, progress) {
+    const ctx = this.ctx;
+    const centerX = Gyruss.C.CX;
+    const centerY = Gyruss.C.CY;
+    const baseSize = 150;
+    const size = baseSize * (0.5 + progress * 0.5);
+    
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    
+    switch(planetName) {
+      case 'Neptune':
+        // Blue ice giant
+        const neptuneGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        neptuneGrad.addColorStop(0, '#87ceeb');
+        neptuneGrad.addColorStop(0.6, '#4682b4');
+        neptuneGrad.addColorStop(1, '#191970');
+        ctx.fillStyle = neptuneGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Storm patterns
+        ctx.strokeStyle = '#6495ed';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.7;
+        for (let i = 0; i < 3; i++) {
+          const stormY = (i - 1) * size * 0.4;
+          ctx.beginPath();
+          ctx.ellipse(0, stormY, size * 0.8, size * 0.15, 0, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        break;
+        
+      case 'Uranus':
+        // Pale blue-green with rings
+        const uranusGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        uranusGrad.addColorStop(0, '#e0ffff');
+        uranusGrad.addColorStop(0.6, '#40e0d0');
+        uranusGrad.addColorStop(1, '#008b8b');
+        ctx.fillStyle = uranusGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Vertical rings (unique to Uranus)
+        ctx.rotate(Math.PI / 2);
+        ctx.strokeStyle = '#b0e0e6';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 5; i++) {
+          const ringR = size * (1.2 + i * 0.1);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringR, ringR * 0.1, 0, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        break;
+        
+      case 'Saturn':
+        // Golden planet with prominent rings
+        const saturnGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        saturnGrad.addColorStop(0, '#ffd700');
+        saturnGrad.addColorStop(0.6, '#daa520');
+        saturnGrad.addColorStop(1, '#b8860b');
+        ctx.fillStyle = saturnGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Atmospheric bands
+        ctx.strokeStyle = '#ffdf80';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        for (let i = 0; i < 4; i++) {
+          const bandY = (i - 1.5) * size * 0.3;
+          ctx.beginPath();
+          ctx.ellipse(0, bandY, size * 0.9, size * 0.1, 0, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        
+        // Famous rings
+        ctx.strokeStyle = '#ffeaa7';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.8;
+        for (let i = 0; i < 7; i++) {
+          const ringR = size * (1.3 + i * 0.08);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ringR, ringR * 0.15, 0, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        break;
+        
+      case 'Jupiter':
+        // Giant with Great Red Spot
+        const jupiterGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        jupiterGrad.addColorStop(0, '#fff8dc');
+        jupiterGrad.addColorStop(0.4, '#daa520');
+        jupiterGrad.addColorStop(0.8, '#cd853f');
+        jupiterGrad.addColorStop(1, '#8b4513');
+        ctx.fillStyle = jupiterGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Bands
+        ctx.strokeStyle = '#f4a460';
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 6; i++) {
+          const bandY = (i - 2.5) * size * 0.25;
+          ctx.beginPath();
+          ctx.ellipse(0, bandY, size * 0.95, size * 0.08, 0, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        
+        // Great Red Spot
+        const spotGrad = ctx.createRadialGradient(size * 0.3, size * 0.2, 0, size * 0.3, size * 0.2, size * 0.3);
+        spotGrad.addColorStop(0, '#ff6347');
+        spotGrad.addColorStop(1, '#8b0000');
+        ctx.fillStyle = spotGrad;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(size * 0.3, size * 0.2, size * 0.25, size * 0.15, 0, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        break;
+        
+      case 'Mars':
+        // Red planet
+        const marsGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        marsGrad.addColorStop(0, '#ffa07a');
+        marsGrad.addColorStop(0.6, '#cd5c5c');
+        marsGrad.addColorStop(1, '#8b0000');
+        ctx.fillStyle = marsGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Surface features
+        ctx.fillStyle = '#a0522d';
+        ctx.globalAlpha = 0.4;
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Gyruss.C.TWO_PI;
+          const dist = Gyruss.Utils.rand(size * 0.3, size * 0.8);
+          const featureSize = Gyruss.Utils.rand(5, 15);
+          ctx.beginPath();
+          ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, featureSize, 0, Gyruss.C.TWO_PI);
+          ctx.fill();
+        }
+        
+        // Polar ice cap
+        ctx.fillStyle = '#f0f8ff';
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.7, size * 0.2, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        break;
+        
+      case 'Earth':
+        // Blue marble
+        const earthGrad = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+        earthGrad.addColorStop(0, '#87ceeb');
+        earthGrad.addColorStop(0.6, '#4682b4');
+        earthGrad.addColorStop(1, '#191970');
+        ctx.fillStyle = earthGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Continents
+        ctx.fillStyle = '#228b22';
+        ctx.globalAlpha = 0.8;
+        const continents = [
+          {x: -size * 0.4, y: size * 0.2, w: size * 0.6, h: size * 0.4},
+          {x: size * 0.1, y: -size * 0.3, w: size * 0.4, h: size * 0.5},
+          {x: -size * 0.2, y: -size * 0.6, w: size * 0.3, h: size * 0.3}
+        ];
+        
+        continents.forEach(cont => {
+          ctx.beginPath();
+          ctx.ellipse(cont.x, cont.y, cont.w / 2, cont.h / 2, 0, 0, Gyruss.C.TWO_PI);
+          ctx.fill();
+        });
+        
+        // Clouds
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 0.3;
+        for (let i = 0; i < 12; i++) {
+          const angle = (i / 12) * Gyruss.C.TWO_PI;
+          const dist = Gyruss.Utils.rand(size * 0.4, size * 0.9);
+          const cloudSize = Gyruss.Utils.rand(8, 20);
+          ctx.beginPath();
+          ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, cloudSize, 0, Gyruss.C.TWO_PI);
+          ctx.fill();
+        }
+        break;
+        
+      default: // THE CORE
+        // Dark mechanical structure
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.3, '#ff6600');
+        coreGrad.addColorStop(0.6, '#cc3300');
+        coreGrad.addColorStop(1, '#000000');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        
+        // Mechanical details
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.8;
+        const spokes = 16;
+        for (let i = 0; i < spokes; i++) {
+          const angle = (i / spokes) * Gyruss.C.TWO_PI;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(angle) * size * 0.3, Math.sin(angle) * size * 0.3);
+          ctx.lineTo(Math.cos(angle) * size * 0.9, Math.sin(angle) * size * 0.9);
+          ctx.stroke();
+        }
+        
+        // Concentric rings
+        for (let r = 0.4; r <= 0.8; r += 0.2) {
+          ctx.beginPath();
+          ctx.arc(0, 0, size * r, 0, Gyruss.C.TWO_PI);
+          ctx.stroke();
+        }
+        break;
+    }
+    
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  },
+
   draw() {
-    // Background
-    this.ctx.fillStyle = '#05060b';
+    // Enhanced background with nebula
+    const bgGrad = this.ctx.createRadialGradient(Gyruss.C.CX, Gyruss.C.CY, 0, Gyruss.C.CX, Gyruss.C.CY, Gyruss.C.WIDTH);
+    bgGrad.addColorStop(0, '#0a0a20');
+    bgGrad.addColorStop(0.5, '#05060b');
+    bgGrad.addColorStop(1, '#000000');
+    this.ctx.fillStyle = bgGrad;
     this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
 
-    // Stars
+    // Nebula effects
+    this.ctx.save();
+    this.ctx.globalAlpha = 0.1;
+    const nebulaGrad1 = this.ctx.createRadialGradient(Gyruss.C.CX * 0.3, Gyruss.C.CY * 0.4, 0, Gyruss.C.CX * 0.3, Gyruss.C.CY * 0.4, 300);
+    nebulaGrad1.addColorStop(0, '#ff4444');
+    nebulaGrad1.addColorStop(1, 'transparent');
+    this.ctx.fillStyle = nebulaGrad1;
+    this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+    
+    const nebulaGrad2 = this.ctx.createRadialGradient(Gyruss.C.CX * 1.7, Gyruss.C.CY * 0.6, 0, Gyruss.C.CX * 1.7, Gyruss.C.CY * 0.6, 250);
+    nebulaGrad2.addColorStop(0, '#4444ff');
+    nebulaGrad2.addColorStop(1, 'transparent');
+    this.ctx.fillStyle = nebulaGrad2;
+    this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+    this.ctx.restore();
+
+    // Enhanced stars with different types
     this.ctx.save();
     this.ctx.translate(Gyruss.C.CX, Gyruss.C.CY);
     const warpIntensity = this.state === 'warp' ? Math.min(1, this.worldTime / 1.5) : 0;
-    this.stars.forEach(s => {
+    
+    this.stars.forEach((s, index) => {
       const pos = Gyruss.Utils.polarToCartesian(s.angle, s.radius);
-      const size = s.parallax * (1 + warpIntensity * 8);
-      this.ctx.fillStyle = s.color;
-      this.ctx.globalAlpha = 0.5 + 0.5 * Math.sin(s.angle + this.worldTime * (1 + s.parallax));
-      this.ctx.fillRect(pos.x - Gyruss.C.CX - size / 2, pos.y - Gyruss.C.CY - size / 2, size, size);
+      const baseSize = s.parallax * (1 + warpIntensity * 8);
+      const twinkle = 0.7 + 0.3 * Math.sin(s.angle + this.worldTime * (1 + s.parallax) * 3);
+      
+      this.ctx.globalAlpha = twinkle;
+      
+      if (index % 20 === 0) {
+        // Bright star with cross pattern
+        this.ctx.fillStyle = s.color;
+        this.ctx.shadowBlur = 3;
+        this.ctx.shadowColor = s.color;
+        
+        // Center
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize, 0, Gyruss.C.TWO_PI);
+        this.ctx.fill();
+        
+        // Cross rays
+        this.ctx.strokeStyle = s.color;
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x - Gyruss.C.CX - baseSize * 3, pos.y - Gyruss.C.CY);
+        this.ctx.lineTo(pos.x - Gyruss.C.CX + baseSize * 3, pos.y - Gyruss.C.CY);
+        this.ctx.moveTo(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY - baseSize * 3);
+        this.ctx.lineTo(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY + baseSize * 3);
+        this.ctx.stroke();
+        this.ctx.shadowBlur = 0;
+        
+      } else if (index % 10 === 0) {
+        // Medium star with glow
+        const starGrad = this.ctx.createRadialGradient(
+          pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, 0,
+          pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize * 2
+        );
+        starGrad.addColorStop(0, s.color);
+        starGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = starGrad;
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize * 2, 0, Gyruss.C.TWO_PI);
+        this.ctx.fill();
+        
+      } else {
+        // Regular star
+        this.ctx.fillStyle = s.color;
+        this.ctx.fillRect(
+          pos.x - Gyruss.C.CX - baseSize / 2, 
+          pos.y - Gyruss.C.CY - baseSize / 2, 
+          baseSize, 
+          baseSize
+        );
+      }
     });
+    
     this.ctx.restore();
     this.ctx.globalAlpha = 1;
 

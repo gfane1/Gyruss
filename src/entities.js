@@ -15,7 +15,6 @@ Gyruss.Player = class Player {
     
     // Weapon system
     this.currentWeapon = Gyruss.C.WEAPONS.LASER;
-    this.weaponTimer = 0;
     
     // Upgrade system
     this.activeUpgrades = new Map();
@@ -29,15 +28,9 @@ Gyruss.Player = class Player {
     if (Gyruss.Game.keysDown['ArrowRight'] || Gyruss.Game.keysDown['KeyD']) moveDir = 1;
     this.angle = Gyruss.Utils.wrapAngle(this.angle + moveDir * this.speed * dt);
 
-    // Update weapon and upgrade timers
+    // Update timers
     if (this.fireTimer > 0) this.fireTimer -= dt;
     if (this.missileCooldown > 0) this.missileCooldown -= dt;
-    if (this.weaponTimer > 0) {
-      this.weaponTimer -= dt;
-      if (this.weaponTimer <= 0) {
-        this.currentWeapon = Gyruss.C.WEAPONS.LASER;
-      }
-    }
 
     // Update active upgrades
     for (const [upgrade, timeLeft] of this.activeUpgrades.entries()) {
@@ -69,8 +62,17 @@ Gyruss.Player = class Player {
   }
 
   fire() {
-    Gyruss.Audio.sfx.play('laser');
     const weapon = this.currentWeapon;
+    
+    // Play weapon-specific sound effects
+    if (weapon === Gyruss.C.WEAPONS.PLASMA) {
+      Gyruss.Audio.sfx.play('plasma');
+    } else if (weapon === Gyruss.C.WEAPONS.WAVE) {
+      Gyruss.Audio.sfx.play('wave');
+    } else {
+      Gyruss.Audio.sfx.play('laser');
+    }
+    
     this.fireTimer = weapon.cooldown / this.rapidFireMultiplier;
     const spawnRadius = Gyruss.C.PLAYER_ORBIT_RADIUS - 15;
 
@@ -88,13 +90,18 @@ Gyruss.Player = class Player {
 
   handleHit() {
     if (this.hitTimer > 0 || this.invulnerable || this.shieldActive) return;
+    
     this.lives--;
     this.hitTimer = 2.5;
-    this.weaponTimer = 0;
-    this.currentWeapon = Gyruss.C.WEAPONS.LASER;
-    this.activeUpgrades.clear();
-    this.rapidFireMultiplier = 1;
-    this.shieldActive = false;
+    
+    // Only reset weapons if NOT invulnerable (T-key test mode should preserve weapons)
+    if (!this.invulnerable) {
+      this.currentWeapon = Gyruss.C.WEAPONS.LASER;
+      this.activeUpgrades.clear();
+      this.rapidFireMultiplier = 1;
+      this.shieldActive = false;
+    }
+    
     Gyruss.Audio.sfx.play('hit');
     if (this.lives <= 0) Gyruss.Game.triggerGameOver();
   }
@@ -122,7 +129,6 @@ Gyruss.Player = class Player {
     const weapon = Gyruss.C.WEAPONS[type];
     if (!weapon) return;
     this.currentWeapon = weapon;
-    this.weaponTimer = 15; // 15 seconds for special weapons
   }
 
   draw(ctx) {
@@ -134,59 +140,157 @@ Gyruss.Player = class Player {
     ctx.translate(pos.x, pos.y);
     ctx.rotate(this.angle + Math.PI / 2);
 
-    // Thruster
-    const thrusterSize = Gyruss.C.PLAYER_SIZE * (0.8 + Math.random() * 0.4);
-    const thrustGrad = ctx.createLinearGradient(0, Gyruss.C.PLAYER_SIZE * 0.5, 0, Gyruss.C.PLAYER_SIZE * 0.5 + thrusterSize);
-    thrustGrad.addColorStop(0, '#6bf3ff');
-    thrustGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = thrustGrad;
+    const size = Gyruss.C.PLAYER_SIZE;
+    const time = Gyruss.Game.worldTime || 0;
+
+    // Main thruster flames (animated)
+    const thrusterIntensity = 0.8 + Math.sin(time * 20) * 0.2;
+    const thrusterSize = size * (0.9 + Math.random() * 0.3) * thrusterIntensity;
+    
+    // Primary thruster
+    const thrustGrad1 = ctx.createLinearGradient(0, size * 0.4, 0, size * 0.4 + thrusterSize);
+    thrustGrad1.addColorStop(0, '#ffffff');
+    thrustGrad1.addColorStop(0.3, '#00d4ff');
+    thrustGrad1.addColorStop(0.7, '#0066ff');
+    thrustGrad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = thrustGrad1;
     ctx.beginPath();
-    ctx.moveTo(0, Gyruss.C.PLAYER_SIZE * 0.5);
-    ctx.lineTo(-Gyruss.C.PLAYER_SIZE * 0.4, Gyruss.C.PLAYER_SIZE * 0.5 + thrusterSize);
-    ctx.lineTo(Gyruss.C.PLAYER_SIZE * 0.4, Gyruss.C.PLAYER_SIZE * 0.5 + thrusterSize);
+    ctx.moveTo(0, size * 0.4);
+    ctx.lineTo(-size * 0.25, size * 0.4 + thrusterSize);
+    ctx.lineTo(size * 0.25, size * 0.4 + thrusterSize);
     ctx.closePath();
     ctx.fill();
 
-    // Hull
-    const hullGrad = ctx.createLinearGradient(-Gyruss.C.PLAYER_SIZE, 0, Gyruss.C.PLAYER_SIZE, 0);
-    hullGrad.addColorStop(0, '#00ffaa');
-    hullGrad.addColorStop(0.5, '#ffffff');
-    hullGrad.addColorStop(1, '#00ffaa');
+    // Secondary thruster flames
+    ctx.fillStyle = '#4dffff';
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.15, size * 0.4);
+    ctx.lineTo(-size * 0.12, size * 0.4 + thrusterSize * 0.7);
+    ctx.lineTo(-size * 0.08, size * 0.4 + thrusterSize * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(size * 0.15, size * 0.4);
+    ctx.lineTo(size * 0.12, size * 0.4 + thrusterSize * 0.7);
+    ctx.lineTo(size * 0.08, size * 0.4 + thrusterSize * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Wing structures with detailed shading
+    const wingGrad = ctx.createLinearGradient(-size, 0, size, 0);
+    wingGrad.addColorStop(0, '#003366');
+    wingGrad.addColorStop(0.3, '#0066cc');
+    wingGrad.addColorStop(0.5, '#4daaff');
+    wingGrad.addColorStop(0.7, '#0066cc');
+    wingGrad.addColorStop(1, '#003366');
+    ctx.fillStyle = wingGrad;
+    
+    // Left wing
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.3, -size * 0.8);
+    ctx.lineTo(-size * 0.9, size * 0.1);
+    ctx.lineTo(-size * 0.8, size * 0.4);
+    ctx.lineTo(-size * 0.4, size * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Right wing
+    ctx.beginPath();
+    ctx.moveTo(size * 0.3, -size * 0.8);
+    ctx.lineTo(size * 0.9, size * 0.1);
+    ctx.lineTo(size * 0.8, size * 0.4);
+    ctx.lineTo(size * 0.4, size * 0.2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wing highlights
+    ctx.strokeStyle = '#80ccff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.35, -size * 0.7);
+    ctx.lineTo(-size * 0.75, size * 0.05);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(size * 0.35, -size * 0.7);
+    ctx.lineTo(size * 0.75, size * 0.05);
+    ctx.stroke();
+
+    // Main hull with enhanced gradient
+    const hullGrad = ctx.createRadialGradient(0, -size * 0.2, 0, 0, -size * 0.2, size);
+    hullGrad.addColorStop(0, '#ffffff');
+    hullGrad.addColorStop(0.2, '#80ffcc');
+    hullGrad.addColorStop(0.5, '#00cc80');
+    hullGrad.addColorStop(0.8, '#006640');
+    hullGrad.addColorStop(1, '#003320');
     ctx.fillStyle = hullGrad;
     ctx.beginPath();
-    ctx.moveTo(0, -Gyruss.C.PLAYER_SIZE);
-    ctx.lineTo(Gyruss.C.PLAYER_SIZE * 0.7, Gyruss.C.PLAYER_SIZE * 0.6);
-    ctx.lineTo(0, Gyruss.C.PLAYER_SIZE * 0.3);
-    ctx.lineTo(-Gyruss.C.PLAYER_SIZE * 0.7, Gyruss.C.PLAYER_SIZE * 0.6);
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.6, size * 0.2);
+    ctx.lineTo(size * 0.3, size * 0.4);
+    ctx.lineTo(0, size * 0.3);
+    ctx.lineTo(-size * 0.3, size * 0.4);
+    ctx.lineTo(-size * 0.6, size * 0.2);
     ctx.closePath();
     ctx.fill();
 
-    // Cockpit
-    ctx.fillStyle = '#00aaff';
+    // Hull outline and details
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Center line detail
+    ctx.strokeStyle = '#80ffff';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(0, 0, Gyruss.C.PLAYER_SIZE * 0.25, 0, Gyruss.C.TWO_PI);
+    ctx.moveTo(0, -size * 0.9);
+    ctx.lineTo(0, size * 0.2);
+    ctx.stroke();
+
+    // Cockpit with glass effect
+    const cockpitGrad = ctx.createRadialGradient(-size * 0.1, -size * 0.3, 0, 0, 0, size * 0.3);
+    cockpitGrad.addColorStop(0, '#ffffff');
+    cockpitGrad.addColorStop(0.3, '#80d4ff');
+    cockpitGrad.addColorStop(0.7, '#0080cc');
+    cockpitGrad.addColorStop(1, '#004080');
+    ctx.fillStyle = cockpitGrad;
+    ctx.beginPath();
+    ctx.arc(0, -size * 0.1, size * 0.25, 0, Gyruss.C.TWO_PI);
     ctx.fill();
+
+    // Cockpit highlight
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(-size * 0.08, -size * 0.18, size * 0.08, 0, Gyruss.C.TWO_PI);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Weapon hardpoints
+    ctx.fillStyle = this.currentWeapon.color;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = this.currentWeapon.color;
+    ctx.beginPath();
+    ctx.arc(-size * 0.4, size * 0.1, 3, 0, Gyruss.C.TWO_PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(size * 0.4, size * 0.1, 3, 0, Gyruss.C.TWO_PI);
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
     // Shield and upgrade effects
     if (this.invulnerable || this.shieldActive) {
       ctx.beginPath();
-      ctx.arc(0, 0, Gyruss.C.PLAYER_SIZE * 1.2, 0, Gyruss.C.TWO_PI);
+      ctx.arc(0, 0, size * 1.3, 0, Gyruss.C.TWO_PI);
       ctx.strokeStyle = this.shieldActive ? Gyruss.C.UPGRADES.SHIELD.color : '#6bf3ff';
       ctx.lineWidth = 2;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 15;
       ctx.shadowColor = ctx.strokeStyle;
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
-    // Weapon and upgrade indicators
-    if (this.currentWeapon.id !== 'laser' || this.activeUpgrades.size > 0) {
-      ctx.fillStyle = this.currentWeapon.color;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = this.currentWeapon.color;
-      ctx.beginPath();
-      ctx.arc(0, Gyruss.C.PLAYER_SIZE * 0.8, 4, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-    }
     ctx.restore();
   }
 };
@@ -208,41 +312,103 @@ Gyruss.Bullet = class Bullet {
   draw(ctx) {
     ctx.save();
     const pos = Gyruss.Utils.polarToCartesian(this.angle, this.radius);
+    const time = Gyruss.Game.worldTime || 0;
     
     if (this.weapon.id === 'plasma') {
-      // Plasma ball effect
-      const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 8);
-      gradient.addColorStop(0, '#ffffff');
-      gradient.addColorStop(0.5, this.weapon.color);
-      gradient.addColorStop(1, 'transparent');
-      ctx.fillStyle = gradient;
+      // Enhanced plasma ball with energy core
+      const coreGrad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 4);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(1, this.weapon.color);
+      ctx.fillStyle = coreGrad;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = this.weapon.color;
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 8, 0, Gyruss.C.TWO_PI);
+      ctx.arc(pos.x, pos.y, 4, 0, Gyruss.C.TWO_PI);
       ctx.fill();
+      
+      // Outer glow
+      const glowGrad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 12);
+      glowGrad.addColorStop(0, this.weapon.color);
+      glowGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowGrad;
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 12, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      
     } else if (this.weapon.id === 'wave') {
-      // Wave beam effect
-      const tail = Gyruss.Utils.polarToCartesian(this.angle, this.radius + 25);
+      // Enhanced wave beam with oscillation
+      const tailLength = 30;
+      const tail = Gyruss.Utils.polarToCartesian(this.angle, this.radius + tailLength);
+      
+      // Main beam
       const gradient = ctx.createLinearGradient(pos.x, pos.y, tail.x, tail.y);
       gradient.addColorStop(0, '#ffffff');
       gradient.addColorStop(0.3, this.weapon.color);
       gradient.addColorStop(1, 'transparent');
+      
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 6;
       ctx.lineCap = 'round';
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = this.weapon.color;
       ctx.beginPath();
       ctx.moveTo(pos.x, pos.y);
       ctx.lineTo(tail.x, tail.y);
       ctx.stroke();
+      
+      // Side oscillations
+      const perpAngle = this.angle + Math.PI / 2;
+      const oscillation = Math.sin(time * 10 + this.radius * 0.1) * 3;
+      const sideX = Math.cos(perpAngle) * oscillation;
+      const sideY = Math.sin(perpAngle) * oscillation;
+      
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(pos.x + sideX, pos.y + sideY);
+      ctx.lineTo(tail.x + sideX, tail.y + sideY);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      
     } else {
-      // Default laser
-      const tail = Gyruss.Utils.polarToCartesian(this.angle, this.radius + 18);
+      // Enhanced default laser with glow and trail
+      const tailLength = 22;
+      const tail = Gyruss.Utils.polarToCartesian(this.angle, this.radius + tailLength);
+      
+      // Outer glow
       ctx.strokeStyle = this.weapon.color;
-      ctx.lineWidth = this.weapon.size;
+      ctx.lineWidth = this.weapon.size + 4;
       ctx.lineCap = 'round';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = this.weapon.color;
+      ctx.globalAlpha = 0.4;
       ctx.beginPath();
       ctx.moveTo(pos.x, pos.y);
       ctx.lineTo(tail.x, tail.y);
       ctx.stroke();
+      
+      // Core beam
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = this.weapon.size;
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineTo(tail.x, tail.y);
+      ctx.stroke();
+      
+      // Inner core
+      ctx.strokeStyle = this.weapon.color;
+      ctx.lineWidth = this.weapon.size * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineTo(tail.x, tail.y);
+      ctx.stroke();
+      
+      ctx.shadowBlur = 0;
     }
     
     ctx.restore();
@@ -382,20 +548,168 @@ Gyruss.Enemy = class Enemy {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(this.angle + Math.PI / 2);
-    ctx.fillStyle = this.color;
-    ctx.strokeStyle = this.health > 1 ? '#fff' : '#000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
+
+    const time = Gyruss.Game.worldTime || 0;
+    const pulse = 0.8 + 0.2 * Math.sin(time * 4 + this.angle * 5);
+
     if (this.type === 'saucer') {
+      const size = 15;
+      
+      // Main saucer body with metallic gradient
+      const saucerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.2);
+      saucerGrad.addColorStop(0, '#ffffff');
+      saucerGrad.addColorStop(0.2, this.color);
+      saucerGrad.addColorStop(0.6, this.color);
+      saucerGrad.addColorStop(1, '#000000');
+      
+      ctx.fillStyle = saucerGrad;
+      ctx.beginPath();
       ctx.scale(1.2, 0.7);
-      ctx.arc(0, 0, 15, 0, Gyruss.C.TWO_PI);
+      ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.scale(1/1.2, 1/0.7);
+
+      // Dome highlight
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.scale(1.2, 0.7);
+      ctx.arc(-size * 0.3, -size * 0.2, size * 0.4, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.scale(1/1.2, 1/0.7);
+      ctx.globalAlpha = 1;
+
+      // Bottom section
+      const bottomGrad = ctx.createLinearGradient(0, 0, 0, size * 0.8);
+      bottomGrad.addColorStop(0, this.color);
+      bottomGrad.addColorStop(1, '#333333');
+      ctx.fillStyle = bottomGrad;
+      ctx.beginPath();
+      ctx.scale(1.2, 0.7);
+      ctx.arc(0, size * 0.3, size * 0.7, 0, Math.PI);
+      ctx.fill();
+      ctx.scale(1/1.2, 1/0.7);
+
+      // Pulsing lights around edge
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Gyruss.C.TWO_PI;
+        const lightX = Math.cos(angle) * size * 1.1;
+        const lightY = Math.sin(angle) * size * 0.8;
+        
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = this.color;
+        ctx.globalAlpha = pulse;
+        ctx.beginPath();
+        ctx.arc(lightX, lightY, 2, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+
+      // Health indicator
+      if (this.health > 1) {
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.scale(1.2, 0.7);
+        ctx.arc(0, 0, size + 2, 0, Gyruss.C.TWO_PI);
+        ctx.stroke();
+        ctx.scale(1/1.2, 1/0.7);
+      }
+
     } else { // fighter
-      ctx.moveTo(0, -18); ctx.lineTo(14, 6);
-      ctx.lineTo(0, 12); ctx.lineTo(-14, 6);
+      const size = 18;
+      
+      // Wing gradient
+      const wingGrad = ctx.createLinearGradient(-size, 0, size, 0);
+      wingGrad.addColorStop(0, '#333333');
+      wingGrad.addColorStop(0.5, this.color);
+      wingGrad.addColorStop(1, '#333333');
+      
+      // Main body
+      const bodyGrad = ctx.createLinearGradient(0, -size, 0, size);
+      bodyGrad.addColorStop(0, '#ffffff');
+      bodyGrad.addColorStop(0.3, this.color);
+      bodyGrad.addColorStop(1, '#333333');
+      
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size * 0.6, size * 0.2);
+      ctx.lineTo(size * 0.3, size * 0.6);
+      ctx.lineTo(0, size * 0.4);
+      ctx.lineTo(-size * 0.3, size * 0.6);
+      ctx.lineTo(-size * 0.6, size * 0.2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Wing details
+      ctx.fillStyle = wingGrad;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.2, -size * 0.5);
+      ctx.lineTo(-size * 0.8, size * 0.3);
+      ctx.lineTo(-size * 0.6, size * 0.5);
+      ctx.lineTo(-size * 0.3, size * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.moveTo(size * 0.2, -size * 0.5);
+      ctx.lineTo(size * 0.8, size * 0.3);
+      ctx.lineTo(size * 0.6, size * 0.5);
+      ctx.lineTo(size * 0.3, size * 0.1);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cockpit
+      ctx.fillStyle = '#80d4ff';
+      ctx.shadowBlur = 3;
+      ctx.shadowColor = '#80d4ff';
+      ctx.globalAlpha = pulse * 0.8;
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.3, size * 0.15, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+
+      // Engine glow
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = this.color;
+      ctx.globalAlpha = pulse;
+      ctx.beginPath();
+      ctx.arc(0, size * 0.4, 3, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+
+      // Wing tip lights
+      ctx.fillStyle = '#ffff80';
+      ctx.shadowBlur = 2;
+      ctx.shadowColor = '#ffff80';
+      ctx.globalAlpha = pulse * 0.6;
+      ctx.beginPath();
+      ctx.arc(-size * 0.7, size * 0.3, 1.5, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(size * 0.7, size * 0.3, 1.5, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+
+      // Hull outline
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size * 0.6, size * 0.2);
+      ctx.lineTo(0, size * 0.4);
+      ctx.lineTo(-size * 0.6, size * 0.2);
+      ctx.closePath();
+      ctx.stroke();
     }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+
     ctx.restore();
   }
 };
@@ -435,41 +749,200 @@ Gyruss.Satellite = class Satellite {
   
   draw(ctx) {
     const pos = this.getPos();
+    const time = Gyruss.Game.worldTime || 0;
+    const rotation = time * 2;
+    const pulse = 0.8 + 0.2 * Math.sin(time * 4);
+    
     ctx.save();
-    ctx.fillStyle = this.isPowerUp ? '#ffff00' : '#cccccc';
-    ctx.shadowBlur = this.isPowerUp ? 15 : 5;
-    ctx.shadowColor = this.isPowerUp ? '#ffff00' : '#cccccc';
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, 10, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(rotation);
+    
+    if (this.isPowerUp) {
+      // Power-up satellite with detailed design
+      const size = 12;
+      
+      // Core with gradient
+      const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.4, this.color || '#ffff00');
+      coreGrad.addColorStop(1, '#cc8800');
+      ctx.fillStyle = coreGrad;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color || '#ffff00';
+      ctx.globalAlpha = pulse;
+      ctx.beginPath();
+      ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Solar panels
+      ctx.fillStyle = '#336699';
+      ctx.strokeStyle = '#88ccff';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 0;
+      
+      // Left panel
+      ctx.beginPath();
+      ctx.rect(-size * 2, -size * 0.5, size * 0.8, size);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Right panel
+      ctx.beginPath();
+      ctx.rect(size * 1.2, -size * 0.5, size * 0.8, size);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Panel details
+      ctx.strokeStyle = '#aaddff';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 3; i++) {
+        const y = -size * 0.3 + i * size * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(-size * 2, y);
+        ctx.lineTo(-size * 1.2, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(size * 1.2, y);
+        ctx.lineTo(size * 2, y);
+        ctx.stroke();
+      }
+      
+      // Antenna
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(0, -size * 1.5);
+      ctx.stroke();
+      
+      // Antenna tip
+      ctx.fillStyle = '#ff4444';
+      ctx.shadowBlur = 3;
+      ctx.shadowColor = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(0, -size * 1.5, 2, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      
+    } else {
+      // Regular satellite
+      const size = 8;
+      
+      // Main body
+      const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+      bodyGrad.addColorStop(0, '#ffffff');
+      bodyGrad.addColorStop(0.6, '#cccccc');
+      bodyGrad.addColorStop(1, '#666666');
+      ctx.fillStyle = bodyGrad;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = '#cccccc';
+      ctx.beginPath();
+      ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      
+      // Simple solar panels
+      ctx.fillStyle = '#444488';
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.rect(-size * 1.5, -size * 0.3, size * 0.5, size * 0.6);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.rect(size, -size * 0.3, size * 0.5, size * 0.6);
+      ctx.fill();
+    }
+    
     ctx.restore();
   }
 };
 
 Gyruss.Particle = class Particle {
-  constructor(x, y, color) {
+  constructor(x, y, color, type = 'normal') {
     this.x = x; this.y = y; this.color = color;
+    this.type = type;
     this.vx = Gyruss.Utils.rand(-150, 150);
     this.vy = Gyruss.Utils.rand(-150, 150);
     this.life = Gyruss.Utils.rand(0.4, 0.8);
     this.age = 0;
+    this.rotation = Gyruss.Utils.rand(0, Gyruss.C.TWO_PI);
+    this.rotSpeed = Gyruss.Utils.rand(-5, 5);
+    this.size = Gyruss.Utils.rand(2, 6);
+    
+    if (type === 'spark') {
+      this.vx *= 2;
+      this.vy *= 2;
+      this.life *= 0.5;
+      this.size *= 0.5;
+    } else if (type === 'smoke') {
+      this.vx *= 0.3;
+      this.vy *= 0.3;
+      this.life *= 2;
+      this.size *= 1.5;
+    }
   }
   
   update(dt) {
     this.age += dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
-    this.vx *= 0.98; this.vy *= 0.98;
+    this.rotation += this.rotSpeed * dt;
+    
+    if (this.type === 'normal') {
+      this.vx *= 0.98; 
+      this.vy *= 0.98;
+    } else if (this.type === 'spark') {
+      this.vx *= 0.95;
+      this.vy *= 0.95;
+    } else if (this.type === 'smoke') {
+      this.vy -= 20 * dt; // Rise upward
+      this.vx *= 0.99;
+    }
+    
     return this.age < this.life;
   }
   
   draw(ctx) {
     const lifeRatio = 1 - this.age / this.life;
-    ctx.globalAlpha = lifeRatio;
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 2 + lifeRatio * 4, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
+    const currentSize = this.size * (this.type === 'smoke' ? (0.5 + lifeRatio * 1.5) : lifeRatio);
+    
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = lifeRatio * (this.type === 'smoke' ? 0.4 : 1);
+    
+    if (this.type === 'spark') {
+      // Draw elongated spark
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = this.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, currentSize * 2, currentSize * 0.5, 0, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (this.type === 'smoke') {
+      // Draw wispy smoke
+      const smokeGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize);
+      smokeGrad.addColorStop(0, this.color);
+      smokeGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = smokeGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, currentSize, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+    } else {
+      // Normal glowing particle
+      const particleGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize);
+      particleGrad.addColorStop(0, '#ffffff');
+      particleGrad.addColorStop(0.3, this.color);
+      particleGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = particleGrad;
+      ctx.shadowBlur = 3;
+      ctx.shadowColor = this.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, currentSize, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    
     ctx.globalAlpha = 1;
+    ctx.restore();
   }
 };

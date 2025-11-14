@@ -25,12 +25,18 @@
 
 ### Player
 - **Movement**: Rotate 360° around orbit ring (← / → or A/D). Always faces inward.  
-- **Shooting**: Spacebar fires bullets inward toward centre.  
-  - Level 1: Single-shot.  
-  - Power-up (via satellite): Double-shot (two bullets at offset angles).  
-- **Lives**: Player starts with 5 lives. Losing all lives = Game Over.  
-- **Damage**: Collision with enemies or bullets costs 1 life. Double-shot is lost on hit.
-- **Game Over**: Triggered when lives = 0. Display message “GAME OVER – Press R to Restart.”  
+- **Weapons System**: Three weapon types with unique properties:
+  - **Laser** (default): Fast, accurate, low damage (1), cyan color.
+  - **Plasma**: Slower, higher damage (2), enhanced visual effects, teal color.
+  - **Wave**: Oscillating beam with spread pattern, pink color.
+- **Upgrade System**: Temporary power-ups from satellites:
+  - **Shield**: 10-second invulnerability with blue glow effect.
+  - **Rapid Fire**: 15-second doubled fire rate.
+  - **Triple Shot**: 20-second three-bullet spread pattern.
+- **Lives**: Player starts with 5 lives. Losing all lives = Game Over.
+- **Damage**: Collision with enemies or bullets costs 1 life. Upgrades and weapons reset on hit (except in invulnerable test mode).
+- **Missiles**: M key fires homing missiles with blast radius damage.
+- **Game Over**: Triggered when lives = 0. Display message "GAME OVER – Press Fire to Restart."
 
 ### Special Controls (for dev/testing)
 - **T**: Toggle invulnerability mode (HUD indicator: "INVULNERABLE").  
@@ -51,10 +57,14 @@
   - Bosses: Cosmic Serpent.
 
 ### Satellites & Power-Ups
-- Appear after waves are cleared.  
-- Three satellites drift into player’s forward path.  
-- The central glowing satellite grants **double-shot upgrade** if destroyed.  
-- Disappear after timer if not engaged.  
+- **Satellite Waves**: Appear every 3rd wave in groups of 3.
+- **Progression System**: 3 satellite waves must be completed before warping.
+- **Power-Up Types**: Center satellite (glowing) contains random upgrade:
+  - Weapon upgrades: Plasma or Wave weapons.
+  - Temporary upgrades: Shield, Rapid Fire, or Triple Shot.
+- **Visual Design**: Power-up satellites feature solar panels, antenna, and glowing cores.
+- **Timer System**: Satellites disappear after 6 seconds if not destroyed.
+- **Scoring**: 50 points per satellite + upgrade value.
 
 ### Scoring
 - Fighter: 100 pts  
@@ -71,9 +81,30 @@
 - Destroy all bonus enemies = perfect-clear score bonus.  
 
 ### Boss Battles (Implemented in v6.0)
-1. **Cosmic Serpent** - Glowing nodes, sine-wave body motion.
-   - Multiple hit points across its body.
-   - Fires projectiles from its segments.
+**Three Progressive Boss Types:**
+
+1. **Cosmic Serpent** - Multi-segment serpentine boss with flowing movement.
+   - 8 segments with individual health (3 HP each).
+   - Serpentine motion with wave-based amplitude.
+   - Segments fire projectiles at player.
+   - Destroyable segments for tactical gameplay.
+
+2. **Star Destroyer** - Formation-based turret boss.
+   - 6 orbital turrets rotating around center.
+   - Each turret has 12 HP and aims at player.
+   - Turrets destroyed individually for progressive weakening.
+   - Rotational movement pattern.
+
+3. **Galactic Core** - Final orbital satellite boss.
+   - 4 heavily armored orbital satellites (15 HP each).
+   - Fast rotation and coordinated firing.
+   - Most challenging encounter with highest score reward.
+
+**Boss Progression:**
+- Bosses appear based on planet progression.
+- Health bars display boss name and remaining HP.
+- Massive explosion effects and score rewards on defeat.
+- Victory screen triggers on boss defeat.
 
 ---
 
@@ -105,13 +136,13 @@
 - Tunnel of streaking stars appears, leading to next stage/planet.  
 
 ### Audio
-- **Music**: Synth/organ loop of Bach’s *Toccata & Fugue in D minor*.  
+- **Music**: Synth/organ loop of Bach's *Toccata & Fugue in D minor* (bgm.mp3).
 - **Sound FX**: (Generated via Web Audio API)
-  - Player fire → high-pitched laser “pew.”  
-  - Enemy fire → lower-pitched burst.  
-  - Explosions → noise-based boom.  
-  - Warp → deep whoosh.
-  - Player Hit → damaging buzz.
+  - **Weapon sounds**: Laser (triangle wave), Plasma (dual oscillator), Wave (LFO modulation).
+  - **Explosions**: Regular (filtered noise) and Big Explosion (boss defeats with distortion).
+  - **Effects**: Warp (frequency sweep), Hit (sawtooth), Power-up (ascending tone).
+  - **Interactive**: S key and button toggle, auto-initializes on first input.
+  - **Fallback**: Graceful degradation if Web Audio API unavailable.
 
 ---
 
@@ -145,15 +176,17 @@ philosophicalthoughts.txt
 
 ---
 
-## 6. Current Status (v6.0)
-✅ All core gameplay features from v5.6 are integrated.
-✅ **Bugs Fixed**: Player ship orientation and disappearance-on-fire bugs resolved.
-✅ **Refactored Code**: Entire codebase modernized to a class-based system for maintainability.
-✅ **Enemy AI**: Enemies now fire back at the player.
-✅ **Planet System**: Full progression from Neptune to the final boss is implemented.
-✅ **Boss Battle**: The "Cosmic Serpent" boss encounter is complete with unique mechanics.
-✅ **Sound FX**: All sound effects are implemented using the Web Audio API.
-✅ **Polished UI**: Added attract screen, game over screen, and victory screen.
+## 6. Current Status (v6.1+)
+✅ **Complete Game Loop**: Full progression from Neptune through Earth to The Core.
+✅ **Three Boss Types**: Cosmic Serpent, Star Destroyer, and Galactic Core with unique mechanics.
+✅ **Advanced Weapon System**: Laser, Plasma, and Wave weapons with unique properties.
+✅ **Upgrade System**: Shield, Rapid Fire, and Triple Shot temporary power-ups.
+✅ **Satellite Progression**: Proper wave-based progression with power-up satellites.
+✅ **Enhanced Visual Effects**: Particle systems, nebula backgrounds, planet rendering.
+✅ **Complete Audio System**: Weapon-specific SFX, dynamic music, toggle controls.
+✅ **Responsive Design**: Canvas scales properly, touch controls for mobile.
+✅ **Debug Tools**: Comprehensive test keys (T, W, B, M, S) for development.
+✅ **Code Architecture**: Modular ES5+ class system with proper separation of concerns.
 
 ---
 

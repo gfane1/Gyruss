@@ -9,7 +9,7 @@ Architecture (big picture):
 - `Gyruss.C` (`src/game.js`) — global constants and configuration (screen size, weapons, upgrades).
 - `Gyruss.Game` (`src/game.js`) — singleton game state, main loop (`requestAnimationFrame`), spawn/flow logic.
 - `Gyruss.*` classes (`src/entities.js`) — Player, Enemy, Bullet, Missile, Satellite, Particle.
-- `Gyruss.CosmicSerpent` (`src/boss.js`) — boss entity class and behavior.
+- `Gyruss.CosmicSerpent`, `Gyruss.StarDestroyer`, `Gyruss.GalacticCore` (`src/boss.js`) — three boss entity classes with unique mechanics.
 - `Gyruss.Audio` (`src/audio.js`) — Web Audio API sfx and bgm handling; `bgm.mp3` expected next to `index.html`.
 - `Gyruss.Utils` (`src/utils.js`) — small math helpers (polar/cartesian, rand, distSq).
 
@@ -29,18 +29,20 @@ Dev workflows / how to run locally:
 
 Debugging / handy dev keys (runtime shortcuts):
 - `←` / `→` or `A` / `D`: rotate player
-- `Space`: fire
-- `T`: toggle invulnerability
-- `W`: warp (skip wave)
-- `B`: jump to boss
-- `M`: fire missile
+- `Space`: fire (continuous when held)
+- `T`: toggle invulnerability (preserves weapons/upgrades in test mode)
+- `W`: warp (skip wave/stage)
+- `B`: jump to boss (cycles through all 3 boss types)
+- `M`: fire missile (homing with blast radius)
 - `S`: toggle sound (also `#soundToggle` button)
 
 Examples of common edits and where to make them:
-- Add/change weapons: update `Gyruss.C.WEAPONS` in `src/game.js` and review `Gyruss.Player.fire()` in `src/entities.js`.
+- Add/change weapons: update `Gyruss.C.WEAPONS` in `src/game.js`, implement firing logic in `Gyruss.Player.fire()`, add visual effects in `Gyruss.Bullet.draw()`, and add sound in `src/audio.js`.
 - New upgrade/power-up: add entry to `Gyruss.C.UPGRADES` (`src/game.js`) and implement behavior in `Gyruss.Player.applyUpgrade()` (`src/entities.js`).
+- New boss: create class in `src/boss.js` following pattern of existing bosses, add to `createBoss()` switch in `src/game.js`.
 - New enemy/wave pattern: add a spawn helper in `Gyruss.Game` (e.g., `spawnSpiralWave` in `src/game.js`) and push a `new Gyruss.Enemy(...)`.
 - Audio changes: edit `src/audio.js` (sfx functions live there) and ensure `Gyruss.Audio.initAudioContext()` is called before playing.
+- Visual effects: particle system in `Gyruss.Particle` class, explosion spawning in `Gyruss.Game.spawnExplosion()`.
 
 Integration points / external dependencies:
 - `bgm.mp3` (optional) placed beside `index.html` for background music. If missing, audio code falls back gracefully.
