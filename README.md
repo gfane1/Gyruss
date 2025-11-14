@@ -19,7 +19,7 @@ npx http-server -p 8000
 **VS Code:**
 Use the Live Server extension and click "Go Live"
 
-Then open http://localhost:8000 in your browser.
+Then open http://127.0.0.1:5500 in your browser.
 
 ⚠️ **Important:** Do NOT open `index.html` via `file://` — audio and module loading will fail. Always use HTTP.
 
