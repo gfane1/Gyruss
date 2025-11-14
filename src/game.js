@@ -270,6 +270,11 @@ Gyruss.Game = {
     this.satellites.push(new Gyruss.Satellite(centerAngle + 0.2, false));
     this.satellitesInCurrentWave = 3;
     this.satellitesDestroyed = 0;
+    
+    // Reset weapon to laser only at the start of first satellite wave in new cycle
+    if (this.satelliteWavesCompleted === 0 && this.player) {
+      this.player.currentWeapon = Gyruss.C.WEAPONS.LASER;
+    }
   },
 
   spawnBonusWave() {
@@ -444,6 +449,7 @@ Gyruss.Game = {
           if (sat.isPowerUp) {
             Gyruss.Audio.sfx.play('powerUp'); // Power-up pickup sound
             if (sat.powerUpType in Gyruss.C.WEAPONS) {
+              // Weapon upgrades are now permanent until life loss or satellite phase reset
               this.player.setWeapon(sat.powerUpType);
             } else {
               this.player.applyUpgrade(sat.powerUpType);
@@ -482,7 +488,7 @@ Gyruss.Game = {
     if (this.player) {
       this.ctx.fillText(`LIVES ${this.player.lives}`, Gyruss.C.WIDTH - 24, 34);
       
-      // Show active upgrades
+      // Show active weapon and upgrades
       let y = 64;
       if (this.player.currentWeapon.id !== 'laser') {
         this.ctx.fillStyle = this.player.currentWeapon.color;

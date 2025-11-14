@@ -32,13 +32,20 @@ Then open http://localhost:8000 in your browser.
 - **Sound toggle:** `S` key or click the button
 
 ### Objective
-Orbit around the screen's perimeter and fire inward to destroy enemies. Clear waves to warp through planets (Neptune → Uranus → Saturn → Jupiter → Mars → Earth → The Core). Collect weapon upgrades and power-ups from satellites, and defeat three progressive boss types.
+Orbit around the screen's perimeter and fire inward to destroy enemies. Clear waves to warp through planets (Neptune → Uranus → Saturn → Jupiter → Mars → Earth → The Core). Collect weapon upgrades and power-ups from satellites, and defeat three epic progressive bosses with spectacular destruction sequences.
 
 ### Weapons & Upgrades
 - **Laser** (default): Fast, accurate shots
 - **Plasma**: Slower but more powerful with enhanced effects
 - **Wave**: Oscillating beam weapon
 - **Upgrades**: Shield (invulnerability), Rapid Fire, Triple Shot
+- **Weapon Persistence**: Special weapons retained through boss victories and warps
+
+### Epic Boss Battles
+- **Enhanced Graphics**: Multi-gradient segments, particle trails, energy beams
+- **Dynamic Movement**: Complex patterns that intensify as bosses take damage
+- **Cinematic Destruction**: 4-6 second explosion sequences with screen effects
+- **Progressive Difficulty**: Three bosses with increasing complexity and power
 
 ## Dev/Debug Keys
 
@@ -56,7 +63,7 @@ The game uses a modular structure with a global `Gyruss` namespace:
 - **`src/utils.js`** — Math helpers (polar coords, angle wrapping, distance checks)
 - **`src/audio.js`** — Web Audio API sound effects and music handling
 - **`src/entities.js`** — Player, Enemy, Bullet, Missile, Satellite, Particle classes
-- **`src/boss.js`** — Three boss entities: Cosmic Serpent, Star Destroyer, Galactic Core
+- **`src/boss.js`** — Three epic boss entities with enhanced graphics and cinematic destruction: Cosmic Serpent (10 segments), Star Destroyer (8 turrets), Galactic Core (6 orbitals)
 - **`src/game.js`** — Game state, main loop, wave spawning, collision detection, planet progression
 
 ### Key Patterns

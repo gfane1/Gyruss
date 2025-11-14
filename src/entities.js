@@ -94,7 +94,7 @@ Gyruss.Player = class Player {
     this.lives--;
     this.hitTimer = 2.5;
     
-    // Only reset weapons if NOT invulnerable (T-key test mode should preserve weapons)
+    // Reset weapons and upgrades on life loss (but not in invulnerable test mode)
     if (!this.invulnerable) {
       this.currentWeapon = Gyruss.C.WEAPONS.LASER;
       this.activeUpgrades.clear();
@@ -129,6 +129,7 @@ Gyruss.Player = class Player {
     const weapon = Gyruss.C.WEAPONS[type];
     if (!weapon) return;
     this.currentWeapon = weapon;
+    // Weapons now persist until life loss or satellite phase reset
   }
 
   draw(ctx) {
