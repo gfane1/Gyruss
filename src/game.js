@@ -64,6 +64,7 @@ Gyruss.Game = {
 
     // Initialize systems
     Gyruss.Audio.init();
+    this.initStarfield(350); // Increased from 200 for denser starfield
     
     // Input handlers
     document.addEventListener('keydown', (e) => {
@@ -71,8 +72,7 @@ Gyruss.Game = {
       if (!this.keysDown[e.code]) this.keysPressed[e.code] = true;
       this.keysDown[e.code] = true;
       this.armAudioAndInput();
-      if (e.code === 'KeyM') this.player?.fireMissile();
-      if (e.code === 'KeyT') this.player.invulnerable = !this.player.invulnerable;
+      if (e.code === 'KeyT' && this.player) this.player.invulnerable = !this.player.invulnerable;
       if (e.code === 'KeyS') Gyruss.Audio.toggleSound();
     });
 
@@ -271,8 +271,9 @@ Gyruss.Game = {
     this.satellitesInCurrentWave = 3;
     this.satellitesDestroyed = 0;
     
-    // Reset weapon to laser only at the start of first satellite wave in new cycle
-    if (this.satelliteWavesCompleted === 0 && this.player) {
+    // Reset weapon to laser only at the very start of a completely new satellite cycle
+    // (This should only happen when transitioning from regular waves to satellites for the first time)
+    if (this.satelliteWavesCompleted === 0 && this.satellitesDestroyed === 0 && this.player) {
       this.player.currentWeapon = Gyruss.C.WEAPONS.LASER;
     }
   },
@@ -315,12 +316,42 @@ Gyruss.Game = {
   initStarfield(count) {
     this.stars.length = 0;
     for (let i = 0; i < count; i++) {
+      const starType = Math.random();
+      let type, size, brightness, twinkleSpeed;
+      
+      if (starType < 0.6) {
+        type = 'tiny';
+        size = Gyruss.Utils.rand(0.5, 1.5);
+        brightness = Gyruss.Utils.rand(0.4, 0.8);
+        twinkleSpeed = Gyruss.Utils.rand(1, 3);
+      } else if (starType < 0.85) {
+        type = 'normal';
+        size = Gyruss.Utils.rand(1, 2.5);
+        brightness = Gyruss.Utils.rand(0.6, 1.0);
+        twinkleSpeed = Gyruss.Utils.rand(2, 4);
+      } else if (starType < 0.96) {
+        type = 'bright';
+        size = Gyruss.Utils.rand(2, 4);
+        brightness = Gyruss.Utils.rand(0.8, 1.0);
+        twinkleSpeed = Gyruss.Utils.rand(1, 2);
+      } else {
+        type = 'brilliant';
+        size = Gyruss.Utils.rand(3, 6);
+        brightness = 1.0;
+        twinkleSpeed = Gyruss.Utils.rand(0.5, 1.5);
+      }
+      
       this.stars.push({
         angle: Gyruss.Utils.rand(0, Gyruss.C.TWO_PI),
         radius: Gyruss.Utils.rand(1, Gyruss.C.WIDTH * 0.5),
         speed: Gyruss.Utils.rand(14, 64),
         parallax: Gyruss.Utils.rand(0.35, 1),
-        color: Math.random() > 0.5 ? '#a4dfff' : '#ffeab9'
+        color: Math.random() > 0.6 ? '#a4dfff' : (Math.random() > 0.5 ? '#ffeab9' : '#ffffff'),
+        type: type,
+        size: size,
+        brightness: brightness,
+        twinkleSpeed: twinkleSpeed,
+        twinklePhase: Math.random() * Gyruss.C.TWO_PI
       });
     }
   },
@@ -342,6 +373,8 @@ Gyruss.Game = {
     if (this.keysPressed['KeyW']) this.triggerWarp();
     // Skip to boss for testing - works in any state now
     if (this.keysPressed['KeyB']) this.skipToBoss();
+    // Missile firing - improved responsiveness
+    if (this.keysPressed['KeyM'] && this.player) this.player.fireMissile();
     
     if (this.state === 'attract') return;
 
@@ -800,98 +833,190 @@ Gyruss.Game = {
   },
 
   draw() {
-    // Enhanced background with nebula
+    // Enhanced deep space background
     const bgGrad = this.ctx.createRadialGradient(Gyruss.C.CX, Gyruss.C.CY, 0, Gyruss.C.CX, Gyruss.C.CY, Gyruss.C.WIDTH);
-    bgGrad.addColorStop(0, '#0a0a20');
-    bgGrad.addColorStop(0.5, '#05060b');
+    bgGrad.addColorStop(0, '#0f0f2a');
+    bgGrad.addColorStop(0.3, '#0a0a20');
+    bgGrad.addColorStop(0.7, '#050510');
     bgGrad.addColorStop(1, '#000000');
     this.ctx.fillStyle = bgGrad;
     this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
 
-    // Nebula effects
+    // Animated nebula effects with color cycling
     this.ctx.save();
-    this.ctx.globalAlpha = 0.1;
-    const nebulaGrad1 = this.ctx.createRadialGradient(Gyruss.C.CX * 0.3, Gyruss.C.CY * 0.4, 0, Gyruss.C.CX * 0.3, Gyruss.C.CY * 0.4, 300);
-    nebulaGrad1.addColorStop(0, '#ff4444');
+    const nebulaTime = this.worldTime * 0.3;
+    
+    // Primary nebula - red/orange with animation
+    const nebula1Alpha = 0.08 + Math.sin(nebulaTime) * 0.03;
+    this.ctx.globalAlpha = nebula1Alpha;
+    const nebulaGrad1 = this.ctx.createRadialGradient(
+      Gyruss.C.CX * 0.25 + Math.cos(nebulaTime * 0.5) * 30, 
+      Gyruss.C.CY * 0.3 + Math.sin(nebulaTime * 0.7) * 20, 0,
+      Gyruss.C.CX * 0.25, Gyruss.C.CY * 0.3, 350
+    );
+    nebulaGrad1.addColorStop(0, '#ff6644');
+    nebulaGrad1.addColorStop(0.3, '#ff4422');
+    nebulaGrad1.addColorStop(0.7, '#cc2200');
     nebulaGrad1.addColorStop(1, 'transparent');
     this.ctx.fillStyle = nebulaGrad1;
     this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
     
-    const nebulaGrad2 = this.ctx.createRadialGradient(Gyruss.C.CX * 1.7, Gyruss.C.CY * 0.6, 0, Gyruss.C.CX * 1.7, Gyruss.C.CY * 0.6, 250);
-    nebulaGrad2.addColorStop(0, '#4444ff');
+    // Secondary nebula - blue/purple with animation
+    const nebula2Alpha = 0.06 + Math.sin(nebulaTime * 1.3) * 0.02;
+    this.ctx.globalAlpha = nebula2Alpha;
+    const nebulaGrad2 = this.ctx.createRadialGradient(
+      Gyruss.C.CX * 1.8 + Math.cos(nebulaTime * 0.8) * 40, 
+      Gyruss.C.CY * 0.7 + Math.sin(nebulaTime * 0.6) * 35, 0,
+      Gyruss.C.CX * 1.8, Gyruss.C.CY * 0.7, 280
+    );
+    nebulaGrad2.addColorStop(0, '#6644ff');
+    nebulaGrad2.addColorStop(0.4, '#4422cc');
+    nebulaGrad2.addColorStop(0.8, '#220088');
     nebulaGrad2.addColorStop(1, 'transparent');
     this.ctx.fillStyle = nebulaGrad2;
     this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+    
+    // Tertiary nebula - green/teal accent
+    const nebula3Alpha = 0.04 + Math.sin(nebulaTime * 0.9) * 0.015;
+    this.ctx.globalAlpha = nebula3Alpha;
+    const nebulaGrad3 = this.ctx.createRadialGradient(
+      Gyruss.C.CX * 0.1 + Math.cos(nebulaTime * 1.1) * 25, 
+      Gyruss.C.CY * 1.6 + Math.sin(nebulaTime * 0.4) * 30, 0,
+      Gyruss.C.CX * 0.1, Gyruss.C.CY * 1.6, 200
+    );
+    nebulaGrad3.addColorStop(0, '#44ff88');
+    nebulaGrad3.addColorStop(0.5, '#22cc44');
+    nebulaGrad3.addColorStop(1, 'transparent');
+    this.ctx.fillStyle = nebulaGrad3;
+    this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+    
     this.ctx.restore();
 
-    // Enhanced stars with different types
+    // Enhanced multi-type starfield
     this.ctx.save();
     this.ctx.translate(Gyruss.C.CX, Gyruss.C.CY);
     const warpIntensity = this.state === 'warp' ? Math.min(1, this.worldTime / 1.5) : 0;
     
     this.stars.forEach((s, index) => {
       const pos = Gyruss.Utils.polarToCartesian(s.angle, s.radius);
-      const baseSize = s.parallax * (1 + warpIntensity * 8);
-      const twinkle = 0.7 + 0.3 * Math.sin(s.angle + this.worldTime * (1 + s.parallax) * 3);
+      const baseSize = s.size * s.parallax * (1 + warpIntensity * 12);
+      const twinkle = s.brightness * (0.6 + 0.4 * Math.sin(s.twinklePhase + this.worldTime * s.twinkleSpeed));
       
       this.ctx.globalAlpha = twinkle;
+      const starX = pos.x - Gyruss.C.CX;
+      const starY = pos.y - Gyruss.C.CY;
       
-      if (index % 20 === 0) {
-        // Bright star with cross pattern
-        this.ctx.fillStyle = s.color;
-        this.ctx.shadowBlur = 3;
-        this.ctx.shadowColor = s.color;
-        
-        // Center
-        this.ctx.beginPath();
-        this.ctx.arc(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize, 0, Gyruss.C.TWO_PI);
-        this.ctx.fill();
-        
-        // Cross rays
-        this.ctx.strokeStyle = s.color;
-        this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x - Gyruss.C.CX - baseSize * 3, pos.y - Gyruss.C.CY);
-        this.ctx.lineTo(pos.x - Gyruss.C.CX + baseSize * 3, pos.y - Gyruss.C.CY);
-        this.ctx.moveTo(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY - baseSize * 3);
-        this.ctx.lineTo(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY + baseSize * 3);
-        this.ctx.stroke();
-        this.ctx.shadowBlur = 0;
-        
-      } else if (index % 10 === 0) {
-        // Medium star with glow
-        const starGrad = this.ctx.createRadialGradient(
-          pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, 0,
-          pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize * 2
-        );
-        starGrad.addColorStop(0, s.color);
-        starGrad.addColorStop(1, 'transparent');
-        this.ctx.fillStyle = starGrad;
-        this.ctx.beginPath();
-        this.ctx.arc(pos.x - Gyruss.C.CX, pos.y - Gyruss.C.CY, baseSize * 2, 0, Gyruss.C.TWO_PI);
-        this.ctx.fill();
-        
-      } else {
-        // Regular star
-        this.ctx.fillStyle = s.color;
-        this.ctx.fillRect(
-          pos.x - Gyruss.C.CX - baseSize / 2, 
-          pos.y - Gyruss.C.CY - baseSize / 2, 
-          baseSize, 
-          baseSize
-        );
+      switch(s.type) {
+        case 'tiny':
+          this.ctx.fillStyle = s.color;
+          this.ctx.fillRect(starX - baseSize/2, starY - baseSize/2, baseSize, baseSize);
+          break;
+          
+        case 'normal':
+          const normalGrad = this.ctx.createRadialGradient(starX, starY, 0, starX, starY, baseSize * 1.5);
+          normalGrad.addColorStop(0, '#ffffff');
+          normalGrad.addColorStop(0.3, s.color);
+          normalGrad.addColorStop(1, 'transparent');
+          this.ctx.fillStyle = normalGrad;
+          this.ctx.beginPath();
+          this.ctx.arc(starX, starY, baseSize * 1.5, 0, Gyruss.C.TWO_PI);
+          this.ctx.fill();
+          break;
+          
+        case 'bright':
+          // Core
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.shadowBlur = 6;
+          this.ctx.shadowColor = s.color;
+          this.ctx.beginPath();
+          this.ctx.arc(starX, starY, baseSize * 0.8, 0, Gyruss.C.TWO_PI);
+          this.ctx.fill();
+          
+          // Glow
+          const brightGrad = this.ctx.createRadialGradient(starX, starY, 0, starX, starY, baseSize * 2.5);
+          brightGrad.addColorStop(0, s.color);
+          brightGrad.addColorStop(0.4, s.color + '80');
+          brightGrad.addColorStop(1, 'transparent');
+          this.ctx.shadowBlur = 0;
+          this.ctx.fillStyle = brightGrad;
+          this.ctx.beginPath();
+          this.ctx.arc(starX, starY, baseSize * 2.5, 0, Gyruss.C.TWO_PI);
+          this.ctx.fill();
+          break;
+          
+        case 'brilliant':
+          // Spectacular star with cross rays and intense glow
+          this.ctx.shadowBlur = 12;
+          this.ctx.shadowColor = s.color;
+          
+          // Core
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(starX, starY, baseSize, 0, Gyruss.C.TWO_PI);
+          this.ctx.fill();
+          
+          // Cross rays
+          this.ctx.strokeStyle = s.color;
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          const rayLength = baseSize * 4;
+          this.ctx.moveTo(starX - rayLength, starY);
+          this.ctx.lineTo(starX + rayLength, starY);
+          this.ctx.moveTo(starX, starY - rayLength);
+          this.ctx.lineTo(starX, starY + rayLength);
+          this.ctx.moveTo(starX - rayLength * 0.7, starY - rayLength * 0.7);
+          this.ctx.lineTo(starX + rayLength * 0.7, starY + rayLength * 0.7);
+          this.ctx.moveTo(starX - rayLength * 0.7, starY + rayLength * 0.7);
+          this.ctx.lineTo(starX + rayLength * 0.7, starY - rayLength * 0.7);
+          this.ctx.stroke();
+          
+          // Intense outer glow
+          this.ctx.shadowBlur = 0;
+          const brilliantGrad = this.ctx.createRadialGradient(starX, starY, 0, starX, starY, baseSize * 4);
+          brilliantGrad.addColorStop(0, s.color + 'FF');
+          brilliantGrad.addColorStop(0.2, s.color + 'CC');
+          brilliantGrad.addColorStop(0.6, s.color + '40');
+          brilliantGrad.addColorStop(1, 'transparent');
+          this.ctx.fillStyle = brilliantGrad;
+          this.ctx.beginPath();
+          this.ctx.arc(starX, starY, baseSize * 4, 0, Gyruss.C.TWO_PI);
+          this.ctx.fill();
+          break;
       }
+      
+      this.ctx.shadowBlur = 0;
     });
     
     this.ctx.restore();
     this.ctx.globalAlpha = 1;
 
-    // Orbit Ring
-    this.ctx.strokeStyle = '#0f1f40';
-    this.ctx.lineWidth = 2;
+    // Enhanced orbit ring with glow effect
+    const ringGrad = this.ctx.createLinearGradient(0, Gyruss.C.CY - Gyruss.C.PLAYER_ORBIT_RADIUS, 0, Gyruss.C.CY + Gyruss.C.PLAYER_ORBIT_RADIUS);
+    ringGrad.addColorStop(0, '#1a2f50');
+    ringGrad.addColorStop(0.5, '#2a4f80');
+    ringGrad.addColorStop(1, '#1a2f50');
+    
+    this.ctx.strokeStyle = ringGrad;
+    this.ctx.lineWidth = 3;
+    this.ctx.shadowBlur = 8;
+    this.ctx.shadowColor = '#2a4f80';
+    this.ctx.globalAlpha = 0.6;
     this.ctx.beginPath();
     this.ctx.arc(Gyruss.C.CX, Gyruss.C.CY, Gyruss.C.PLAYER_ORBIT_RADIUS, 0, Gyruss.C.TWO_PI);
     this.ctx.stroke();
+    
+    // Inner highlight ring
+    this.ctx.strokeStyle = '#4080cc';
+    this.ctx.lineWidth = 1;
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowColor = '#4080cc';
+    this.ctx.globalAlpha = 0.4;
+    this.ctx.beginPath();
+    this.ctx.arc(Gyruss.C.CX, Gyruss.C.CY, Gyruss.C.PLAYER_ORBIT_RADIUS - 2, 0, Gyruss.C.TWO_PI);
+    this.ctx.stroke();
+    
+    this.ctx.shadowBlur = 0;
+    this.ctx.globalAlpha = 1;
 
     // Entities
     if (this.player && this.state !== 'attract') this.player.draw(this.ctx);

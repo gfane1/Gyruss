@@ -9,7 +9,7 @@ Architecture (big picture):
 - `Gyruss.C` (`src/game.js`) — global constants and configuration (screen size, weapons, upgrades).
 - `Gyruss.Game` (`src/game.js`) — singleton game state, main loop (`requestAnimationFrame`), spawn/flow logic.
 - `Gyruss.*` classes (`src/entities.js`) — Player, Enemy, Bullet, Missile, Satellite, Particle.
-- `Gyruss.CosmicSerpent`, `Gyruss.StarDestroyer`, `Gyruss.GalacticCore` (`src/boss.js`) — three epic boss entity classes with enhanced graphics, dynamic movement, aggression scaling, and cinematic 4-6 second destruction sequences.
+- `Gyruss.CosmicSerpent`, `Gyruss.StarDestroyer`, `Gyruss.GalacticCore` (`src/boss.js`) — three epic boss entity classes with Xbox Live Arcade quality graphics, dynamic movement, aggression scaling, and cinematic 4-6 second destruction sequences.
 - `Gyruss.Audio` (`src/audio.js`) — Web Audio API sfx and bgm handling; `bgm.mp3` expected next to `index.html`.
 - `Gyruss.Utils` (`src/utils.js`) — small math helpers (polar/cartesian, rand, distSq).
 
@@ -43,7 +43,8 @@ Examples of common edits and where to make them:
 - Boss enhancements: add trail effects arrays, aggression scaling based on health ratios, charging mechanics, epic destruction sequences with multiple explosion phases.
 - New enemy/wave pattern: add a spawn helper in `Gyruss.Game` (e.g., `spawnSpiralWave` in `src/game.js`) and push a `new Gyruss.Enemy(...)`.
 - Audio changes: edit `src/audio.js` (sfx functions live there) and ensure `Gyruss.Audio.initAudioContext()` is called before playing.
-- Visual effects: particle system in `Gyruss.Particle` class, explosion spawning in `Gyruss.Game.spawnExplosion()`, screen shake effects, energy beam rendering.
+- Visual effects: enhanced particle system in `Gyruss.Particle` class with multiple types (normal, spark, smoke, explosion), spectacular explosion spawning in `Gyruss.Game.spawnExplosion()`, screen shake effects, energy beam rendering.
+- Enhanced graphics: 4-tier starfield system, 3-layer animated nebula, detailed player ship with multi-layer thrusters, advanced enemy designs with variants, spectacular weapon effects with energy cores.
 
 Integration points / external dependencies:
 - `bgm.mp3` (optional) placed beside `index.html` for background music. If missing, audio code falls back gracefully.
@@ -56,9 +57,10 @@ Editing guidance / safety:
 
 Notes & pitfalls discovered in code:
 - The repository uses the modular `src/` files as the single active entrypoint; edit the `src/` modules only.
-- Watch for duplicated logic (some code was previously duplicated between an older monolithic build and the `src/` modules). Only maintain code in `src/` to avoid drift.
 - Weapon persistence: Special weapons (Plasma/Wave) persist through warps, boss victories, and planet changes. Only reset on life loss or start of new satellite cycles.
 - Boss destruction: All bosses use `isDestroying` flag and `deathTimer` for 4-6 second cinematic destruction sequences instead of instant victory.
 - Boss scaling: Movement speed, firing rates, and visual effects intensify as boss health decreases using health ratios and aggression multipliers.
+- Enhanced graphics: Game now features Xbox Live Arcade quality visuals with 4-tier starfield, detailed ship designs, advanced particle effects, and spectacular weapon rendering.
+- Browser compatibility: Use `save()/scale()/arc()/fill()/restore()` pattern instead of `ellipse()` for better browser support.
 
 If anything here is unclear or you'd like me to expand examples (e.g., add a short patch that adds a new weapon or upgrade), tell me which area to update and I'll iterate.

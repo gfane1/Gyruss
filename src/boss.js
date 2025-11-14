@@ -56,7 +56,7 @@ Gyruss.CosmicSerpent = class CosmicSerpent {
         return;
       } else {
         // Final massive explosion
-        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 300);
+        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 120);
         Gyruss.Audio.sfx.play('bigExplosion');
         Gyruss.Game.score += 10000;
         Gyruss.Game.state = 'victory';
@@ -382,7 +382,7 @@ Gyruss.StarDestroyer = class StarDestroyer {
         return;
       } else {
         // Final core explosion
-        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 400);
+        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 150);
         Gyruss.Audio.sfx.play('bigExplosion');
         Gyruss.Game.score += 15000;
         Gyruss.Game.state = 'victory';

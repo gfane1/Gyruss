@@ -1,8 +1,7 @@
 # Gyruss HTML5 Game Design Specification  
-**Current Version Target:** v6.0 (Final Release)
-**Future Milestone:** v6.0 (Full Xbox Live–style release)  
+**Current Version:** v6.2+ (Xbox Live Arcade Enhanced)
 **Platform:** HTML5 Canvas + JavaScript  
-**Packaging:** Bundled into `Gyruss_vX.zip` per release (v5.4 onward).  
+**Graphics Quality:** Xbox Live Arcade enhanced with spectacular visual effects
 **Purpose:** Provide complete rules, design, technical guidance, and changelog to enable recreation and continuation of the game in any new environment.  
 
 ---
@@ -115,25 +114,37 @@
 
 ## 3. Visual & Audio Design
 
-### Visual Style
-- **Theme**: Neon vector graphics with particle FX.  
-- **Backgrounds**: Black base, layered nebula gradients (blue, purple, red).  
-- **Starfield**: Radiating white points, streak FX during warps.  
-- **HUD**: Neon monospace font; cyan/yellow for score and warp counter.  
+### Enhanced Visual System (Xbox Live Arcade Quality)
+- **4-Tier Starfield**: 350 stars in tiny/normal/bright/brilliant categories with individual properties
+- **Animated 3-Layer Nebula**: Color-cycling cosmic background with depth and movement effects
+- **Enhanced Orbit Ring**: Detailed gradient rings with improved visual depth
 
-### Player Ship
-- Vector design with teal→green gradient hull.  
-- Glowing cockpit orb.  
-- Thruster flame with cyan→blue gradient.  
+### Player Ship (Enhanced)
+- **Multi-layer Thruster System**: Dynamic flame effects with heat distortion and intensity variations
+- **Detailed Hull Armor**: Sectioned plating with realistic metallic gradients and panel lines  
+- **Enhanced Cockpit**: Glass effects with reflective surfaces and internal illumination
+- **Dynamic Weapon Hardpoints**: Visual indicators showing equipped weapon systems
 
-### Enemies
-- Fighters: glowing blue diamonds.  
-- Saucers: glowing magenta ellipses.  
+### Advanced Enemy Designs
+- **Fighter Variants**: Three distinct designs (Interceptor, Heavy Fighter, Assault Fighter)
+  - **Interceptor**: Sleek design with twin engines, streamlined hull, wing-mounted weapons
+  - **Heavy Fighter**: Robust design with armor plating, heavy weapons, powerful main engine
+  - **Assault Fighter**: Angular design with vectored thrust, geometric details, wing-tip weapons
+- **Enhanced Saucer Ships**: Multi-layered hulls with command domes, edge lighting systems, armor plating
+- **Dynamic Components**: Individual cockpits, weapons, engines, and armor sections with unique effects
 
-### Explosions
-- Neon-coloured particles emitted radially.  
-- Use shadowBlur for glow (implemented with 'lighter' composite operation).
-- Fade within 0.5 seconds.  
+### Spectacular Weapon Effects
+- **Plasma Weapons**: Multi-layer energy fields with crackling lightning effects and pulsing cores
+- **Wave Weapons**: Advanced oscillation beams with wave field visualization and energy envelopes  
+- **Laser Weapons**: Sophisticated layered beams with white-hot cores and energy halos
+- **Enhanced Trails**: All weapons feature improved visual impact with energy cores and glow effects  
+
+### Enhanced Particle & Explosion Systems
+- **Spectacular Explosions**: Multi-layer blast effects with core/mid/outer layers and shockwaves
+- **Advanced Sparks**: Energy trails with dynamic intensity, varied colors, and spark trail effects
+- **Enhanced Smoke**: Multi-layer wispy effects with turbulence simulation and realistic drift
+- **Explosion Particles**: Dedicated explosion particle type with blast waves and ring effects
+- **Visual Hierarchy**: Different particle types (normal, spark, smoke, explosion) with unique behaviors  
 
 ### Warp Effects
 - All enemies explode in neon bursts.  
@@ -271,4 +282,15 @@ This section must be updated on every release.
 - **Feature Complete**: Integrated all previously planned features including the full planet system, bonus stages, power-ups, varied enemy formations, and the final boss battle.
 - **Final Release**: This version represents the complete vision outlined in the design specification.
 
-**Release:** **Gyruss_HTML5_Game_v6.0.zip**
+### v6.2+ (Xbox Live Arcade Enhanced Graphics)
+- **4-Tier Starfield System**: 350 stars with tiny/normal/bright/brilliant categories and individual properties
+- **Animated Nebula Background**: 3-layer cosmic background with color cycling and depth effects
+- **Enhanced Player Ship**: Multi-layer thrusters, detailed armor plating, enhanced cockpit with glass effects
+- **Advanced Enemy Designs**: 3 fighter variants (Interceptor/Heavy/Assault) and enhanced saucer ships
+- **Spectacular Weapon Effects**: Plasma crackling, wave oscillations, layered laser beams with energy cores
+- **Enhanced Particle System**: Multi-layer explosions, energy trails, wispy smoke with turbulence
+- **Boss Visual Upgrades**: Enhanced gradients, particle trails, energy beams, cinematic destruction
+- **Browser Compatibility**: Replaced ellipse() calls with scale+arc for better browser support
+- **Performance Optimized**: Efficient rendering pipeline maintaining 60fps with enhanced effects
+
+**Quality Level:** **Xbox Live Arcade Standard Achieved**

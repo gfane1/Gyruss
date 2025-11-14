@@ -1,6 +1,6 @@
 # Gyruss HTML5
 
-A modern HTML5/Canvas remake of Konami's classic *Gyruss* (1983) arcade game, featuring neon vector graphics, particle effects, and Xbox Live Arcade-style polish.
+A modern HTML5/Canvas remake of Konami's classic *Gyruss* (1983) arcade game, featuring Xbox Live Arcade-quality enhanced graphics, spectacular particle effects, and cinematic visual polish with multi-layered starfields, detailed ship designs, and enhanced weapon systems.
 
 ## Quick Start
 
@@ -42,10 +42,18 @@ Orbit around the screen's perimeter and fire inward to destroy enemies. Clear wa
 - **Weapon Persistence**: Special weapons retained through boss victories and warps
 
 ### Epic Boss Battles
-- **Enhanced Graphics**: Multi-gradient segments, particle trails, energy beams
-- **Dynamic Movement**: Complex patterns that intensify as bosses take damage
-- **Cinematic Destruction**: 4-6 second explosion sequences with screen effects
-- **Progressive Difficulty**: Three bosses with increasing complexity and power
+- **Xbox Live Arcade Quality Graphics**: Multi-layered hull designs, particle trails, energy beams
+- **Dynamic Movement**: Complex patterns that intensify as bosses take damage  
+- **Cinematic Destruction**: 4-6 second explosion sequences with multi-phase destruction effects
+- **Progressive Difficulty**: Three bosses with increasing complexity and spectacular visual effects
+
+### Enhanced Visual System
+- **4-Tier Starfield**: Tiny, normal, bright, and brilliant stars with individual properties (350 total)
+- **Animated Nebula**: 3-layer cosmic background with color cycling and depth effects
+- **Detailed Player Ship**: Multi-layer thrusters, armor plating, enhanced cockpit with glass effects
+- **Advanced Enemy Designs**: 3 fighter variants (Interceptor, Heavy, Assault) and enhanced saucer ships
+- **Spectacular Weapons**: Plasma crackling effects, wave oscillations, layered laser beams with energy cores
+- **Enhanced Particles**: Multi-layer explosions, energy trails, wispy smoke with turbulence simulation
 
 ## Dev/Debug Keys
 
