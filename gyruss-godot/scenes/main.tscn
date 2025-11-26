@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://bxk8j7m2qvxqy"]
+
+[ext_resource type="Script" path="res://scripts/rendering/main_renderer.gd" id="1_main_renderer"]
+[ext_resource type="Script" path="res://scripts/rendering/ui_renderer.gd" id="2_ui_renderer"]
+
+[node name="Main" type="Node2D"]
+
+[node name="MainRenderer" type="Node2D" parent="."]
+script = ExtResource("1_main_renderer")
+
+[node name="UICanvas" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="UIRenderer" type="Node2D" parent="UICanvas"]
+script = ExtResource("2_ui_renderer")

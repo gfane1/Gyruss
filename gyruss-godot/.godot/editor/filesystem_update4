@@ -1,0 +1,3 @@
+res://scripts/rendering/main_renderer.gd
+res://scripts/autoload/game_manager.gd
+res://scripts/entities/enemy.gd
