@@ -214,7 +214,6 @@ func update_attract(_delta: float):
 	# Wait for input to start game
 	if InputHandler.fire_pressed and not first_input_armed:
 		first_input_armed = true
-		AudioManager.init_audio()
 	
 	if InputHandler.fire_pressed and first_input_armed:
 		start_game()
