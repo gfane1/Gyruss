@@ -63,8 +63,8 @@ func _draw():
 	# Layer 1: Background gradient
 	draw_background()
 	
-	# Layer 2: Animated nebula (TODO)
-	# draw_nebula()
+	# Layer 2: Animated nebula (3 layers with color cycling)
+	draw_nebula()
 	
 	# Layer 3: Starfield
 	draw_starfield()
