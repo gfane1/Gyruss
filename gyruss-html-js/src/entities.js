@@ -136,10 +136,24 @@ Gyruss.Player = class Player {
     const isVisible = this.invulnerable ? true : (this.hitTimer > 0 ? Math.sin(this.blinkTimer) > 0 : true);
     if (!isVisible) return;
 
-    const pos = Gyruss.Utils.polarToCartesian(this.angle, Gyruss.C.PLAYER_ORBIT_RADIUS);
+    // Handle warp animation - ship moves toward center and scales down
+    let drawPos, drawScale = 1, drawAngle = this.angle;
+    if (Gyruss.Game.state === 'warp') {
+      const warpProgress = Math.min(1, Gyruss.Game.worldTime / 2.6);
+      const currentRadius = Gyruss.C.PLAYER_ORBIT_RADIUS * (1 - warpProgress * 0.85);
+      drawPos = Gyruss.Utils.polarToCartesian(this.angle, currentRadius);
+      drawScale = 1 - warpProgress * 0.7; // Ship shrinks to 30% size
+      // Ship rotates to point toward center during warp
+      drawAngle = this.angle + Math.PI / 2 * (1 - warpProgress) + Math.PI * warpProgress;
+    } else {
+      drawPos = Gyruss.Utils.polarToCartesian(this.angle, Gyruss.C.PLAYER_ORBIT_RADIUS);
+      drawAngle = this.angle + Math.PI / 2;
+    }
+
     ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate(this.angle + Math.PI / 2);
+    ctx.translate(drawPos.x, drawPos.y);
+    ctx.rotate(drawAngle);
+    ctx.scale(drawScale, drawScale);
 
     const size = Gyruss.C.PLAYER_SIZE;
     const time = Gyruss.Game.worldTime || 0;

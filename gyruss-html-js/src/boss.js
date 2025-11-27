@@ -56,7 +56,7 @@ Gyruss.CosmicSerpent = class CosmicSerpent {
         return;
       } else {
         // Final massive explosion
-        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 120);
+        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 50);
         Gyruss.Audio.sfx.play('bigExplosion');
         Gyruss.Game.score += 10000;
         Gyruss.Game.state = 'victory';
@@ -369,7 +369,7 @@ Gyruss.StarDestroyer = class StarDestroyer {
         
         if (explosionIndex < this.turrets.length && this.deathTimer % explosionInterval < 0.1) {
           const turret = this.turrets[explosionIndex];
-          Gyruss.Game.spawnExplosion(turret.x, turret.y, '#ff8800', 60);
+          Gyruss.Game.spawnExplosion(turret.x, turret.y, '#ff8800', 40);
           Gyruss.Audio.sfx.play('explosion');
         }
         
@@ -382,7 +382,7 @@ Gyruss.StarDestroyer = class StarDestroyer {
         return;
       } else {
         // Final core explosion
-        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 150);
+        Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff6600', 60);
         Gyruss.Audio.sfx.play('bigExplosion');
         Gyruss.Game.score += 15000;
         Gyruss.Game.state = 'victory';
@@ -739,7 +739,7 @@ Gyruss.GalacticCore = class GalacticCore {
         // Final universe-shaking explosion
         for (let i = 0; i < 5; i++) {
           setTimeout(() => {
-            Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff00ff', 150);
+            Gyruss.Game.spawnExplosion(Gyruss.C.CX, Gyruss.C.CY, '#ff00ff', 60);
             if (i === 4) {
               Gyruss.Audio.sfx.play('bigExplosion');
               Gyruss.Game.score += 25000;
@@ -815,7 +815,7 @@ Gyruss.GalacticCore = class GalacticCore {
       orbital.health = Math.max(0, orbital.health - damage);
       this.damageFlashTimer = 0.1;
       if (orbital.health <= 0) {
-        Gyruss.Game.spawnExplosion(orbital.x, orbital.y, '#ff00ff', 60);
+        Gyruss.Game.spawnExplosion(orbital.x, orbital.y, '#ff00ff', 40);
         Gyruss.Game.score += 1500;
       }
     }

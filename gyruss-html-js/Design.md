@@ -413,3 +413,68 @@ All drawing happens in `Gyruss.Game.draw()` via Canvas 2D context, executed 60 t
 - Modern browsers with Canvas 2D and Web Audio API
 - No ES6 modules (uses global namespace)
 - Requires HTTP server (not file://) for audio/assets
+
+---
+
+## Recent Updates (November 27, 2025)
+
+### Performance Improvements
+**Boss Explosion Optimization:**
+- Reduced particle counts for boss destruction sequences to prevent frame drops
+- Cosmic Serpent final explosion: 120 → 50 particles
+- Star Destroyer explosions: 150 → 60 particles (core), 60 → 40 particles (turrets)
+- Galactic Core explosions: 150 → 60 particles (core), 60 → 40 particles (orbitals)
+- Result: Smooth 60 FPS during epic boss destruction sequences
+
+### Gameplay Enhancements
+**Weapon System:**
+- Confirmed special weapons (Plasma, Wave) persist until life loss
+- Only upgrades (Shield, Rapid Fire, Triple Shot) are time-limited
+- Weapons reset only on death or at start of new satellite cycle
+- Provides better progression and reward for collecting power-ups
+
+### Visual Enhancements
+
+**Classic Gyruss Warp Animation:**
+- Player ship now moves toward screen center during warp sequence
+- Ship scales down from 100% to 30% size over 2.6 seconds
+- Creates authentic perspective depth effect from original arcade game
+- Ship rotation smoothly transitions to point toward center
+- Dramatically improves warp sequence visual appeal
+
+**Boss Graphics:**
+- Already featuring Xbox Live Arcade quality visuals:
+  - Multi-color radial gradients with health-based opacity
+  - Pulsing energy cores and connecting beams
+  - Damage-reactive visual effects (charging, low health warnings)
+  - Enhanced shadow effects and glow rendering
+  - Detailed armor plating and structural elements
+  
+**Boss Gameplay:**
+- Cosmic Serpent: Serpentine movement with trailing segments, head targeting
+- Star Destroyer: Rotating turrets with charge attacks, barrel tracking
+- Galactic Core: Orbital platforms with energy beams, figure-8 movement
+- All bosses feature health-scaled difficulty and multi-phase destruction
+
+**Player Ship Graphics:**
+- Already featuring detailed visual design:
+  - Multi-layer thruster system with flicker animation
+  - Enhanced wing structures with armor plating
+  - Gradient-based hull with surface detail
+  - Cockpit glow and structural highlights
+  - Side thruster nozzles with independent flicker
+  - 6+ armor panels per wing for depth
+
+### Technical Details
+
+**Files Modified:**
+- `src/boss.js` - Reduced explosion particle counts (5 locations)
+- `src/entities.js` - Added warp animation with scaling and movement
+- `design.md` - This documentation update
+
+**Implementation Notes:**
+- Warp animation uses `Gyruss.Game.worldTime` for smooth interpolation
+- Ship position calculated as: `radius * (1 - progress * 0.85)`
+- Ship scale calculated as: `1 - progress * 0.7`
+- Animation completes over 2.6 second warp duration
+- All changes maintain 60 FPS target performance
