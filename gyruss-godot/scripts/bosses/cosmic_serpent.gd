@@ -64,6 +64,11 @@ func update_movement(delta: float):
 			var target = trail_points[trail_index]
 			segments[i].x = target.x
 			segments[i].y = target.y
+			
+			# Spawn particle trail for each segment (throttled)
+			if randf() < 0.3:
+				var segment_pos = Vector2(segments[i].x, segments[i].y)
+				GameManager.create_particle(segment_pos, "normal", Color(0.6, 0.3, 0.8, 0.6))
 
 func fire():
 	if is_destroying:
@@ -99,14 +104,14 @@ func take_segment_damage(segment_index: int, damage: int) -> bool:
 	if segment.hp <= 0:
 		segment.destroyed = true
 		var pos = Vector2(segment.x, segment.y)
-		GameManager.spawn_explosion(pos, 15, Color.PURPLE)
+		GameManager.spawn_explosion(pos, 80, Color.PURPLE)
 		GameManager.add_score(500)
 		
 		# Damage boss HP
 		return take_damage(10)
 	else:
 		var pos = Vector2(segment.x, segment.y)
-		GameManager.spawn_explosion(pos, 5, Color(0.8, 0.4, 0.8))
+		GameManager.spawn_explosion(pos, 30, Color(0.8, 0.4, 0.8))
 	
 	return false
 
@@ -127,12 +132,38 @@ func get_collision_shapes() -> Array:
 func update_destruction(delta: float):
 	super.update_destruction(delta)
 	
-	# Segments explode one by one
-	var explosions_per_segment = death_duration / float(segment_count)
-	var current_segment = int(death_timer / explosions_per_segment)
+	# Multi-phase destruction with varying intensity
+	var progress = (death_duration - death_timer) / death_duration
 	
-	if current_segment < segments.size():
-		if randf() < 5.0 * delta:
-			var segment = segments[current_segment]
+	# Phase 1 (0-0.3): Initial explosions at segments
+	if progress < 0.3:
+		var segment_phase = int(progress / 0.3 * segment_count)
+		if segment_phase < segments.size() and randf() < 5.0 * delta:
+			var segment = segments[segment_phase]
 			var pos = Vector2(segment.x, segment.y)
-			GameManager.spawn_explosion(pos, 12, Color.PURPLE)
+			GameManager.spawn_explosion(pos, 60, Color.PURPLE)
+	
+	# Phase 2 (0.3-0.6): Cascading explosions
+	elif progress < 0.6:
+		if randf() < 8.0 * delta:
+			var random_segment = randi() % segment_count
+			var segment = segments[random_segment]
+			var pos = Vector2(segment.x, segment.y)
+			GameManager.spawn_explosion(pos, 50, Color(0.8, 0.4, 1.0))
+	
+	# Phase 3 (0.6-0.85): Rapid fire explosions
+	elif progress < 0.85:
+		if randf() < 12.0 * delta:
+			var random_segment = randi() % segment_count
+			var segment = segments[random_segment]
+			var pos = Vector2(segment.x, segment.y)
+			var offset = Vector2(randf_range(-20, 20), randf_range(-20, 20))
+			GameManager.spawn_explosion(pos + offset, 40, Color(1.0, 0.5, 1.0))
+	
+	# Phase 4 (0.85-1.0): Final massive explosion
+	else:
+		if randf() < 15.0 * delta:
+			var random_segment = randi() % segment_count
+			var segment = segments[random_segment]
+			var pos = Vector2(segment.x, segment.y)
+			GameManager.spawn_explosion(pos, 80, Color.WHITE)

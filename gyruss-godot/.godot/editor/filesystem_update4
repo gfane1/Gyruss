@@ -1,2 +1,3 @@
-res://scripts/autoload/audio_manager.gd
-res://scripts/autoload/game_manager.gd
+res://scripts/bosses/cosmic_serpent.gd
+res://scripts/bosses/galactic_core.gd
+res://scripts/bosses/star_destroyer.gd

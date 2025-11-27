@@ -88,7 +88,7 @@ func take_damage(damage: int) -> bool:
 	
 	# Spawn hit particles
 	var pos = Vector2(x, y)
-	GameManager.spawn_explosion(pos, 10, Color.RED)
+	GameManager.spawn_explosion(pos, 50, Color.RED)
 	AudioManager.play_hit()
 	
 	if hp <= 0:
@@ -111,7 +111,7 @@ func update_destruction(delta: float):
 		var offset_x = randf_range(-50, 50)
 		var offset_y = randf_range(-50, 50)
 		var pos = Vector2(x + offset_x, y + offset_y)
-		GameManager.spawn_explosion(pos, 15, Color(1.0, 0.5, 0.0))
+		GameManager.spawn_explosion(pos, 80, Color(1.0, 0.5, 0.0))
 	
 	# Final explosion
 	if death_timer >= death_duration:
@@ -125,7 +125,7 @@ func final_explosion():
 		var distance = randf_range(0, 80)
 		var offset = Vector2(cos(angle) * distance, sin(angle) * distance)
 		var pos = Vector2(x, y) + offset
-		GameManager.spawn_explosion(pos, 20, Color.YELLOW)
+		GameManager.spawn_explosion(pos, 150, Color.YELLOW)
 	
 	AudioManager.play_explosion()
 

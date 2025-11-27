@@ -53,6 +53,11 @@ func update_movement(delta: float):
 	for orbital in orbitals:
 		orbital.angle += deg_to_rad(orbital_rotation_speed * aggression) * delta
 		orbital.angle = Constants.wrap_angle(orbital.angle)
+		
+		# Spawn particle trail for active orbitals (throttled)
+		if not orbital.destroyed and randf() < 0.3:
+			var orbital_pos = get_orbital_position(orbital)
+			GameManager.create_particle(orbital_pos, "normal", Color(0.2, 0.8, 1.0, 0.6))
 	
 	# Update beam attack
 	beam_timer += delta
@@ -195,14 +200,14 @@ func take_orbital_damage(orbital_index: int, damage: int) -> bool:
 	if orbital.hp <= 0:
 		orbital.destroyed = true
 		var pos = get_orbital_position(orbital)
-		GameManager.spawn_explosion(pos, 15, Color.CYAN)
+		GameManager.spawn_explosion(pos, 70, Color.CYAN)
 		GameManager.add_score(400)
 		
 		# Damage boss HP
 		return take_damage(20)
 	else:
 		var pos = get_orbital_position(orbital)
-		GameManager.spawn_explosion(pos, 5, Color(0.5, 0.8, 1.0))
+		GameManager.spawn_explosion(pos, 30, Color(0.5, 0.8, 1.0))
 	
 	return false
 
@@ -231,6 +236,39 @@ func get_collision_shapes() -> Array:
 func update_destruction(delta: float):
 	super.update_destruction(delta)
 	
-	# Pulse effect
-	if int(death_timer * 10.0) % 2 == 0:
-		GameManager.spawn_explosion(Vector2(x, y), 25, Color.CYAN)
+	# Multi-phase destruction with pulsing effect
+	var progress = (death_duration - death_timer) / death_duration
+	
+	# Phase 1 (0-0.25): Orbital explosions
+	if progress < 0.25:
+		if randf() < 7.0 * delta:
+			for orbital in orbitals:
+				if not orbital.destroyed and randf() < 0.4:
+					var pos = get_orbital_position(orbital)
+					GameManager.spawn_explosion(pos, 55, Color.CYAN)
+	
+	# Phase 2 (0.25-0.5): Core destabilization
+	elif progress < 0.5:
+		# Pulse effect intensifies
+		if int(death_timer * 15.0) % 2 == 0:
+			var offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
+			GameManager.spawn_explosion(Vector2(x, y) + offset, 60, Color(0.5, 1.0, 1.0))
+	
+	# Phase 3 (0.5-0.75): Energy discharge
+	elif progress < 0.75:
+		if randf() < 10.0 * delta:
+			# Radial explosions
+			var angle = randf() * TAU
+			var dist = randf_range(20, 70)
+			var offset = Vector2(cos(angle) * dist, sin(angle) * dist)
+			GameManager.spawn_explosion(Vector2(x, y) + offset, 50, Color(0.8, 0.9, 1.0))
+	
+	# Phase 4 (0.75-1.0): Catastrophic collapse
+	else:
+		if randf() < 18.0 * delta:
+			var offset = Vector2(randf_range(-100, 100), randf_range(-100, 100))
+			GameManager.spawn_explosion(Vector2(x, y) + offset, 100, Color.WHITE)
+		
+		# Final pulse
+		if int(death_timer * 20.0) % 3 == 0:
+			GameManager.spawn_explosion(Vector2(x, y), 120, Color.CYAN)

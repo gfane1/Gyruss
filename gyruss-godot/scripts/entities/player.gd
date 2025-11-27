@@ -15,13 +15,13 @@ var score_multiplier: int = 1
 var current_weapon: Dictionary = Constants.WEAPONS.Laser
 var weapon_level: int = 1
 
-# Upgrades
+# Upgrades (stores remaining duration in seconds, 0.0 = inactive)
 var upgrades: Dictionary = {
-	"doubleShot": false,
-	"tripleShot": false,
-	"rapidFire": false,
-	"shield": false,
-	"speedBoost": false
+	"doubleShot": 0.0,
+	"tripleShot": 0.0,
+	"rapidFire": 0.0,
+	"shield": 0.0,
+	"speedBoost": 0.0
 }
 
 # Combat state
@@ -49,7 +49,7 @@ func update(delta: float):
 	
 	# Apply speed boost
 	var speed = rotation_speed
-	if upgrades.speedBoost:
+	if upgrades.speedBoost > 0.0:
 		speed *= Constants.UPGRADES.speedBoost.multiplier
 	
 	# Update angle
@@ -70,10 +70,17 @@ func update(delta: float):
 	if hit_timer > 0:
 		hit_timer -= delta
 		blink_timer += delta
+	
+	# Update upgrade timers
+	for upgrade_key in upgrades.keys():
+		if upgrades[upgrade_key] > 0.0:
+			upgrades[upgrade_key] -= delta
+			if upgrades[upgrade_key] <= 0.0:
+				upgrades[upgrade_key] = 0.0
 
 func fire():
 	var fire_rate = current_weapon.get("fireRate", 0.15)
-	if upgrades.rapidFire:
+	if upgrades.rapidFire > 0.0:
 		fire_rate *= 0.5  # Fire twice as fast
 	
 	if fire_timer < fire_rate:
@@ -83,9 +90,9 @@ func fire():
 	
 	# Determine shot count
 	var shot_count = 1
-	if upgrades.tripleShot:
+	if upgrades.tripleShot > 0.0:
 		shot_count = 3
-	elif upgrades.doubleShot:
+	elif upgrades.doubleShot > 0.0:
 		shot_count = 2
 	
 	# Fire bullets
@@ -218,9 +225,9 @@ func take_damage():
 	if hit_timer > 0 or invulnerable:
 		return
 	
-	if upgrades.shield:
+	if upgrades.shield > 0.0:
 		# Shield absorbs hit
-		upgrades.shield = false
+		upgrades.shield = 0.0
 		hit_timer = 1.0
 		AudioManager.play_hit()
 		GameManager.spawn_explosion(
@@ -256,15 +263,17 @@ func reset_weapons_and_upgrades():
 	
 	# Clear all upgrades
 	for key in upgrades:
-		upgrades[key] = false
+		upgrades[key] = 0.0
 	
 	# Keep lives and missiles (already decremented)
 
 func apply_upgrade(upgrade_key: String):
 	if upgrade_key in upgrades:
-		upgrades[upgrade_key] = true
+		var upgrade_def = Constants.UPGRADES.get(upgrade_key, {})
+		var duration = upgrade_def.get("duration", 10.0)  # Default 10 seconds
+		upgrades[upgrade_key] = duration
 		AudioManager.play_powerup()
-		GameManager.add_score(Constants.UPGRADES[upgrade_key].score)
+		GameManager.add_score(upgrade_def.get("score", 500))
 
 func change_weapon(weapon_name: String):
 	if weapon_name in Constants.WEAPONS:

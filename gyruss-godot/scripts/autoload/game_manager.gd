@@ -30,6 +30,14 @@ var boss_index: int = 0
 var boss_type: int = -1
 var boss_instance = null
 
+# Extra life system
+var last_extra_life_threshold: int = 0
+const EXTRA_LIFE_INTERVAL: int = 30000
+
+# Screen shake system
+var shake_timer: float = 0.0
+var shake_magnitude: float = 0.0
+
 # Entity references
 var player = null  # PlayerEntity instance
 
@@ -61,6 +69,12 @@ func _ready():
 func _process(delta: float):
 	world_time += delta
 	handle_global_shortcuts()
+	
+	# Update screen shake
+	if shake_timer > 0:
+		shake_timer -= delta
+		if shake_timer <= 0:
+			shake_magnitude = 0.0
 	
 	match state:
 		GameState.ATTRACT:
@@ -431,13 +445,32 @@ func trigger_game_over():
 	state_changed.emit(state)
 
 func add_score(points: int):
+	var old_score = score
 	score += points
 	score_changed.emit(score)
+	
+	# Extra life system - award life every 30,000 points
+	var old_threshold = int(old_score / EXTRA_LIFE_INTERVAL)
+	var new_threshold = int(score / EXTRA_LIFE_INTERVAL)
+	
+	if new_threshold > old_threshold and player != null:
+		player.lives += 1
+		lives_changed.emit(player.lives)
+		AudioManager.play_powerup_sound()
+		print("Extra life awarded! Total lives: ", player.lives)
 
 func boss_defeated():
+	# Trigger screen shake for dramatic effect
+	trigger_screen_shake(1.0, 12.0)
+	
 	state = GameState.VICTORY
 	boss_instance = null
 	add_score(5000)
+
+func trigger_screen_shake(duration: float, magnitude: float):
+	"""Trigger camera shake effect for duration seconds with given magnitude (pixels)"""
+	shake_timer = duration
+	shake_magnitude = magnitude
 
 # Wave spawning functions (matches JS exactly)
 func spawn_next_wave():

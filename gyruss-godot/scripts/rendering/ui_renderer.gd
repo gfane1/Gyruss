@@ -83,12 +83,19 @@ func draw_upgrades():
 	var font = ThemeDB.fallback_font
 	var y = 105
 	for upgrade_key in upgrades.keys():
-		if not upgrades[upgrade_key]:
+		var timer = upgrades[upgrade_key]
+		if timer <= 0.0:
 			continue
+		
 		var upgrade_def = Constants.UPGRADES.get(upgrade_key, {})
 		var upgrade_name = upgrade_def.get("name", upgrade_key.capitalize())
 		var color = UPGRADE_COLORS.get(upgrade_key, Color.WHITE)
-		draw_string(font, Vector2(Constants.SCREEN_WIDTH - 20, y), "[" + upgrade_name + "]", HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, color)
+		
+		# Format timer (e.g., "12.3s")
+		var time_text = str(snappedf(timer, 0.1)) + "s"
+		var label = "[" + upgrade_name + ": " + time_text + "]"
+		
+		draw_string(font, Vector2(Constants.SCREEN_WIDTH - 20, y), label, HORIZONTAL_ALIGNMENT_RIGHT, -1, 14, color)
 		y += 18
 
 func draw_state_messages():

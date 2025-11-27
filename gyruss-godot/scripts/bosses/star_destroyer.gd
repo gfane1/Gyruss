@@ -58,6 +58,11 @@ func update_movement(delta: float):
 	for turret in turrets:
 		turret.angle += deg_to_rad(rotation_speed * aggression) * delta
 		turret.angle = Constants.wrap_angle(turret.angle)
+		
+		# Spawn particle trail for active turrets (throttled)
+		if not turret.destroyed and randf() < 0.25:
+			var turret_pos = get_turret_position(turret)
+			GameManager.create_particle(turret_pos, "normal", Color(1.0, 0.3, 0.2, 0.5))
 	
 	# Charge attack
 	charge_timer += delta
@@ -132,7 +137,7 @@ func perform_charge_attack():
 			GameManager.boss_bullets.append(bullet)
 	
 	# Visual effect
-	GameManager.spawn_explosion(Vector2(x, y), 30, Color.YELLOW)
+	GameManager.spawn_explosion(Vector2(x, y), 120, Color.YELLOW)
 
 func get_turret_position(turret: Dictionary) -> Vector2:
 	var offset_x = cos(turret.angle) * turret_distance
@@ -152,14 +157,14 @@ func take_turret_damage(turret_index: int, damage: int) -> bool:
 	if turret.hp <= 0:
 		turret.destroyed = true
 		var pos = get_turret_position(turret)
-		GameManager.spawn_explosion(pos, 15, Color.RED)
+		GameManager.spawn_explosion(pos, 70, Color.RED)
 		GameManager.add_score(300)
 		
 		# Damage boss HP
 		return take_damage(15)
 	else:
 		var pos = get_turret_position(turret)
-		GameManager.spawn_explosion(pos, 5, Color(1.0, 0.5, 0.3))
+		GameManager.spawn_explosion(pos, 25, Color(1.0, 0.5, 0.3))
 	
 	return false
 
@@ -190,3 +195,33 @@ func update_destruction(delta: float):
 	
 	# Spin faster while exploding
 	rotation_angle += deg_to_rad(180.0) * delta
+	
+	# Multi-phase destruction
+	var progress = (death_duration - death_timer) / death_duration
+	
+	# Phase 1 (0-0.25): Turret explosions
+	if progress < 0.25:
+		if randf() < 6.0 * delta:
+			for turret in turrets:
+				if not turret.destroyed and randf() < 0.3:
+					var pos = get_turret_position(turret)
+					GameManager.spawn_explosion(pos, 50, Color.RED)
+	
+	# Phase 2 (0.25-0.5): Core damage spreading
+	elif progress < 0.5:
+		if randf() < 8.0 * delta:
+			var offset = Vector2(randf_range(-40, 40), randf_range(-40, 40))
+			GameManager.spawn_explosion(Vector2(x, y) + offset, 45, Color.ORANGE)
+	
+	# Phase 3 (0.5-0.75): Rapid explosions all over
+	elif progress < 0.75:
+		if randf() < 12.0 * delta:
+			for i in range(2):
+				var offset = Vector2(randf_range(-60, 60), randf_range(-60, 60))
+				GameManager.spawn_explosion(Vector2(x, y) + offset, 40, Color.YELLOW)
+	
+	# Phase 4 (0.75-1.0): Final massive detonation
+	else:
+		if randf() < 15.0 * delta:
+			var offset = Vector2(randf_range(-80, 80), randf_range(-80, 80))
+			GameManager.spawn_explosion(Vector2(x, y) + offset, 90, Color.WHITE)

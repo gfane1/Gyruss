@@ -1,6 +1,6 @@
 
-Priority list - High Todos work
-ok please read the differences.md file and make a todo list of the High Priority differences between the HTML/JS version of the game and the Gotdot version of the game. Then prepare a list to address each of the issues to carry out in steps one by one please.
+Priority list - Medium Todos work
+ok please read the differences.md file and make a todo list of the Medium Priority differences between the HTML/JS version of the game and the Gotdot version of the game. Then prepare a list to address each of the issues to carry out in steps one by one please.
 At the very end of that task list...please update the differences.md file with the updates made to those items please.
 
 _____________________________________________________
