@@ -846,8 +846,22 @@ Gyruss.Game = {
     this.ctx.save();
     const nebulaTime = this.worldTime * 0.3;
     
-    // Primary nebula - red/orange with animation
-    const nebula1Alpha = 0.08 + Math.sin(nebulaTime) * 0.03;
+    // Central red nova - arcade-style background glow (most prominent)
+    const novaAlpha = 0.25 + Math.sin(nebulaTime * 0.5) * 0.08;
+    this.ctx.globalAlpha = novaAlpha;
+    const novaGrad = this.ctx.createRadialGradient(
+      Gyruss.C.CX, Gyruss.C.CY, 0,
+      Gyruss.C.CX, Gyruss.C.CY, 550
+    );
+    novaGrad.addColorStop(0, '#660000');
+    novaGrad.addColorStop(0.3, '#440000');
+    novaGrad.addColorStop(0.6, '#220000');
+    novaGrad.addColorStop(1, 'transparent');
+    this.ctx.fillStyle = novaGrad;
+    this.ctx.fillRect(0, 0, Gyruss.C.WIDTH, Gyruss.C.HEIGHT);
+    
+    // Primary nebula - red/orange with animation (secondary layer)
+    const nebula1Alpha = 0.06 + Math.sin(nebulaTime) * 0.02;
     this.ctx.globalAlpha = nebula1Alpha;
     const nebulaGrad1 = this.ctx.createRadialGradient(
       Gyruss.C.CX * 0.25 + Math.cos(nebulaTime * 0.5) * 30, 

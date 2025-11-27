@@ -133,7 +133,8 @@ Gyruss.Player = class Player {
   }
 
   draw(ctx) {
-    const isVisible = this.invulnerable ? true : (this.hitTimer > 0 ? Math.sin(this.blinkTimer) > 0 : true);
+    // Only blink when hit (not during normal flight)
+    const isVisible = this.invulnerable ? true : (this.hitTimer > 0 ? Math.sin(this.blinkTimer * 10) > 0 : true);
     if (!isVisible) return;
 
     // Handle warp animation - ship moves toward center and scales down
@@ -152,352 +153,61 @@ Gyruss.Player = class Player {
 
     ctx.save();
     ctx.translate(drawPos.x, drawPos.y);
-    ctx.rotate(drawAngle);
+    ctx.rotate(drawAngle + Math.PI);  // Rotate 180 degrees so wings face forward
     ctx.scale(drawScale, drawScale);
 
-    const size = Gyruss.C.PLAYER_SIZE;
+    const size = Gyruss.C.PLAYER_SIZE * 1.5;  // Reduced by 25% (was 2.0, now 1.5)
     const time = Gyruss.Game.worldTime || 0;
 
-    // Enhanced multi-layer thruster system
-    const thrusterIntensity = 0.7 + Math.sin(time * 25) * 0.3;
-    const thrusterFlicker = 0.8 + Math.random() * 0.4;
-    const thrusterSize = size * 1.2 * thrusterIntensity * thrusterFlicker;
+    // Side wings (swept red triangles) - drawn in local space where nose points "up" toward center
+    ctx.fillStyle = '#a03030';
+    ctx.shadowBlur = 0;
     
-    // Main thruster core (white-hot center)
-    const coreThrust = ctx.createLinearGradient(0, size * 0.4, 0, size * 0.4 + thrusterSize);
-    coreThrust.addColorStop(0, '#ffffff');
-    coreThrust.addColorStop(0.2, '#ffffff');
-    coreThrust.addColorStop(0.4, '#80d4ff');
-    coreThrust.addColorStop(0.8, '#0066ff');
-    coreThrust.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = coreThrust;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = '#80d4ff';
+    // Left wing (swept back)
     ctx.beginPath();
-    ctx.moveTo(0, size * 0.35);
-    ctx.lineTo(-size * 0.18, size * 0.4 + thrusterSize * 0.9);
-    ctx.lineTo(0, size * 0.4 + thrusterSize);
-    ctx.lineTo(size * 0.18, size * 0.4 + thrusterSize * 0.9);
+    ctx.moveTo(-size * 0.3, -size * 0.3);  // Wing root front
+    ctx.lineTo(-size * 0.9, size * 0.1);   // Wing tip
+    ctx.lineTo(-size * 0.5, size * 0.3);   // Wing root back
     ctx.closePath();
     ctx.fill();
     
-    // Outer thruster glow
-    const outerThrust = ctx.createLinearGradient(0, size * 0.4, 0, size * 0.4 + thrusterSize * 1.3);
-    outerThrust.addColorStop(0, '#4080ff');
-    outerThrust.addColorStop(0.3, '#2060cc');
-    outerThrust.addColorStop(0.7, '#004099');
-    outerThrust.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = outerThrust;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#4080ff';
-    ctx.globalAlpha = 0.7;
+    // Right wing (swept back)
     ctx.beginPath();
-    ctx.moveTo(0, size * 0.4);
-    ctx.lineTo(-size * 0.35, size * 0.4 + thrusterSize * 1.2);
-    ctx.lineTo(0, size * 0.4 + thrusterSize * 1.3);
-    ctx.lineTo(size * 0.35, size * 0.4 + thrusterSize * 1.2);
+    ctx.moveTo(size * 0.3, -size * 0.3);   // Wing root front
+    ctx.lineTo(size * 0.9, size * 0.1);    // Wing tip
+    ctx.lineTo(size * 0.5, size * 0.3);    // Wing root back
     ctx.closePath();
+    ctx.fill();
+    
+    // Wing stripes (almost white)
+    ctx.fillStyle = '#fdfdfd';
+    ctx.shadowBlur = 0;
+    ctx.fillRect(-size * 0.7, -size * 0.05, size * 0.3, size * 0.08);  // Left stripe
+    ctx.fillRect(size * 0.4, -size * 0.05, size * 0.3, size * 0.08);   // Right stripe
+    
+    // Fuselage (light grey triangle) - nose points forward (toward center)
+    ctx.fillStyle = '#e0e0e0';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 0.6);            // Nose (points toward center)
+    ctx.lineTo(-size * 0.35, size * 0.3);  // Left rear
+    ctx.lineTo(size * 0.35, size * 0.3);   // Right rear
+    ctx.closePath();
+    ctx.fill();
+    
+    // Thruster glow (blue radial gradient at rear center)
+    const thrustGrad = ctx.createRadialGradient(0, size * 0.3, 0, 0, size * 0.3, size * 0.4);
+    thrustGrad.addColorStop(0, 'rgba(90, 170, 255, 1)');
+    thrustGrad.addColorStop(0.5, 'rgba(90, 170, 255, 0.5)');
+    thrustGrad.addColorStop(1, 'rgba(20, 20, 80, 0)');
+    
+    ctx.fillStyle = thrustGrad;
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.8 + Math.sin(time * 20) * 0.2;
+    ctx.beginPath();
+    ctx.arc(0, size * 0.3, size * 0.4, 0, Gyruss.C.TWO_PI);
     ctx.fill();
     ctx.globalAlpha = 1;
-    
-    // Side thruster nozzles
-    const sideFlicker1 = 0.6 + Math.sin(time * 30 + 1) * 0.4;
-    const sideFlicker2 = 0.6 + Math.sin(time * 28 + 3) * 0.4;
-    
-    ctx.fillStyle = '#66ccff';
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = '#66ccff';
-    ctx.globalAlpha = sideFlicker1;
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.25, size * 0.3);
-    ctx.lineTo(-size * 0.22, size * 0.3 + thrusterSize * 0.5);
-    ctx.lineTo(-size * 0.18, size * 0.3 + thrusterSize * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.globalAlpha = sideFlicker2;
-    ctx.beginPath();
-    ctx.moveTo(size * 0.25, size * 0.3);
-    ctx.lineTo(size * 0.22, size * 0.3 + thrusterSize * 0.5);
-    ctx.lineTo(size * 0.18, size * 0.3 + thrusterSize * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-
-    // Enhanced wing structures with armor plating
-    const wingGrad = ctx.createLinearGradient(-size, 0, size, 0);
-    wingGrad.addColorStop(0, '#001a40');
-    wingGrad.addColorStop(0.2, '#003366');
-    wingGrad.addColorStop(0.4, '#0066cc');
-    wingGrad.addColorStop(0.6, '#4daaff');
-    wingGrad.addColorStop(0.8, '#0066cc');
-    wingGrad.addColorStop(1, '#001a40');
-    
-    // Left wing main structure
-    ctx.fillStyle = wingGrad;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = '#0066cc';
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.28, -size * 0.85);
-    ctx.lineTo(-size * 0.95, size * 0.08);
-    ctx.lineTo(-size * 0.85, size * 0.45);
-    ctx.lineTo(-size * 0.38, size * 0.22);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Right wing main structure
-    ctx.beginPath();
-    ctx.moveTo(size * 0.28, -size * 0.85);
-    ctx.lineTo(size * 0.95, size * 0.08);
-    ctx.lineTo(size * 0.85, size * 0.45);
-    ctx.lineTo(size * 0.38, size * 0.22);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
-    
-    // Wing armor panels
-    const panelGrad = ctx.createLinearGradient(0, -size, 0, size * 0.5);
-    panelGrad.addColorStop(0, '#80ccff');
-    panelGrad.addColorStop(0.5, '#4080cc');
-    panelGrad.addColorStop(1, '#002040');
-    
-    ctx.fillStyle = panelGrad;
-    ctx.globalAlpha = 0.8;
-    
-    // Left wing panels
-    for (let i = 0; i < 3; i++) {
-      const panelY = -size * 0.6 + i * size * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(-size * 0.4, panelY);
-      ctx.lineTo(-size * 0.7, panelY + size * 0.15);
-      ctx.lineTo(-size * 0.65, panelY + size * 0.2);
-      ctx.lineTo(-size * 0.38, panelY + size * 0.12);
-      ctx.closePath();
-      ctx.fill();
-    }
-    
-    // Right wing panels
-    for (let i = 0; i < 3; i++) {
-      const panelY = -size * 0.6 + i * size * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(size * 0.4, panelY);
-      ctx.lineTo(size * 0.7, panelY + size * 0.15);
-      ctx.lineTo(size * 0.65, panelY + size * 0.2);
-      ctx.lineTo(size * 0.38, panelY + size * 0.12);
-      ctx.closePath();
-      ctx.fill();
-    }
-    
-    ctx.globalAlpha = 1;
-    
-    // Wing edge highlights
-    ctx.strokeStyle = '#b3daff';
-    ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 3;
-    ctx.shadowColor = '#b3daff';
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.32, -size * 0.75);
-    ctx.lineTo(-size * 0.8, size * 0.05);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(size * 0.32, -size * 0.75);
-    ctx.lineTo(size * 0.8, size * 0.05);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Enhanced main hull with detailed surface
-    const hullGrad = ctx.createRadialGradient(0, -size * 0.3, 0, 0, -size * 0.1, size * 1.2);
-    hullGrad.addColorStop(0, '#ffffff');
-    hullGrad.addColorStop(0.15, '#ccffee');
-    hullGrad.addColorStop(0.3, '#80ffcc');
-    hullGrad.addColorStop(0.5, '#40cc80');
-    hullGrad.addColorStop(0.7, '#00aa60');
-    hullGrad.addColorStop(0.85, '#006640');
-    hullGrad.addColorStop(1, '#003320');
-    
-    ctx.fillStyle = hullGrad;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = '#40cc80';
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 1.05);
-    ctx.lineTo(size * 0.65, size * 0.18);
-    ctx.lineTo(size * 0.32, size * 0.42);
-    ctx.lineTo(0, size * 0.32);
-    ctx.lineTo(-size * 0.32, size * 0.42);
-    ctx.lineTo(-size * 0.65, size * 0.18);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
-
-    // Hull armor plating
-    const plateGrad = ctx.createLinearGradient(0, -size, 0, size * 0.3);
-    plateGrad.addColorStop(0, '#ffffff');
-    plateGrad.addColorStop(0.3, '#ccffdd');
-    plateGrad.addColorStop(0.7, '#66cc99');
-    plateGrad.addColorStop(1, '#004433');
-    
-    ctx.fillStyle = plateGrad;
-    ctx.globalAlpha = 0.7;
-    
-    // Front armor sections
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.95);
-    ctx.lineTo(size * 0.2, -size * 0.6);
-    ctx.lineTo(size * 0.15, -size * 0.45);
-    ctx.lineTo(0, -size * 0.7);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.95);
-    ctx.lineTo(-size * 0.2, -size * 0.6);
-    ctx.lineTo(-size * 0.15, -size * 0.45);
-    ctx.lineTo(0, -size * 0.7);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Mid-section plates
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.25, -size * 0.3);
-    ctx.lineTo(size * 0.25, -size * 0.3);
-    ctx.lineTo(size * 0.35, -size * 0.1);
-    ctx.lineTo(-size * 0.35, -size * 0.1);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
-    
-    // Hull outline with glow
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 1.05);
-    ctx.lineTo(size * 0.65, size * 0.18);
-    ctx.lineTo(size * 0.32, size * 0.42);
-    ctx.lineTo(0, size * 0.32);
-    ctx.lineTo(-size * 0.32, size * 0.42);
-    ctx.lineTo(-size * 0.65, size * 0.18);
-    ctx.closePath();
-    ctx.stroke();
-    
-    // Enhanced center line with energy conduit
-    ctx.strokeStyle = '#ccffff';
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = '#ccffff';
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.95);
-    ctx.lineTo(0, size * 0.25);
-    ctx.stroke();
-    
-    // Energy conduit nodes
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = '#ccffff';
-    for (let i = 0; i < 4; i++) {
-      const nodeY = -size * 0.8 + i * size * 0.3;
-      ctx.beginPath();
-      ctx.arc(0, nodeY, 2, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-    }
-    
-    ctx.shadowBlur = 0;
-
-    // Enhanced cockpit with advanced glass effects
-    const cockpitGrad = ctx.createRadialGradient(-size * 0.12, -size * 0.35, 0, 0, -size * 0.05, size * 0.35);
-    cockpitGrad.addColorStop(0, '#ffffff');
-    cockpitGrad.addColorStop(0.2, '#e6f7ff');
-    cockpitGrad.addColorStop(0.4, '#80d4ff');
-    cockpitGrad.addColorStop(0.7, '#4080cc');
-    cockpitGrad.addColorStop(0.9, '#0060aa');
-    cockpitGrad.addColorStop(1, '#003366');
-    
-    ctx.fillStyle = cockpitGrad;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = '#80d4ff';
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.15, size * 0.28, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Cockpit frame
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
-    ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.15, size * 0.28, 0, Gyruss.C.TWO_PI);
-    ctx.stroke();
-
-    // Primary highlight reflection
-    const highlight1 = ctx.createRadialGradient(-size * 0.15, -size * 0.25, 0, -size * 0.1, -size * 0.2, size * 0.12);
-    highlight1.addColorStop(0, '#ffffff');
-    highlight1.addColorStop(0.6, '#ffffff80');
-    highlight1.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = highlight1;
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(-size * 0.1, -size * 0.22, size * 0.1, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Secondary reflection
-    ctx.fillStyle = '#ffffff';
-    ctx.globalAlpha = 0.4;
-    ctx.beginPath();
-    ctx.arc(size * 0.08, -size * 0.08, size * 0.04, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
-
-    // Enhanced weapon hardpoints with dynamic sizing
-    const weaponIntensity = 0.7 + Math.sin(time * 6) * 0.3;
-    const hardpointSize = this.currentWeapon.id === 'laser' ? 3 : (this.currentWeapon.id === 'plasma' ? 4 : 3.5);
-    
-    // Left hardpoint
-    const leftGrad = ctx.createRadialGradient(-size * 0.42, size * 0.08, 0, -size * 0.42, size * 0.08, hardpointSize * 2);
-    leftGrad.addColorStop(0, '#ffffff');
-    leftGrad.addColorStop(0.4, this.currentWeapon.color);
-    leftGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = leftGrad;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = this.currentWeapon.color;
-    ctx.globalAlpha = weaponIntensity;
-    ctx.beginPath();
-    ctx.arc(-size * 0.42, size * 0.08, hardpointSize * 2, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Right hardpoint
-    const rightGrad = ctx.createRadialGradient(size * 0.42, size * 0.08, 0, size * 0.42, size * 0.08, hardpointSize * 2);
-    rightGrad.addColorStop(0, '#ffffff');
-    rightGrad.addColorStop(0.4, this.currentWeapon.color);
-    rightGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = rightGrad;
-    ctx.beginPath();
-    ctx.arc(size * 0.42, size * 0.08, hardpointSize * 2, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Core hardpoint emitters
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = this.currentWeapon.color;
-    ctx.globalAlpha = 1;
-    ctx.beginPath();
-    ctx.arc(-size * 0.42, size * 0.08, hardpointSize, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.42, size * 0.08, hardpointSize, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
 
     // Shield and upgrade effects
     if (this.invulnerable || this.shieldActive) {
@@ -896,376 +606,257 @@ Gyruss.Enemy = class Enemy {
   }
   
   drawSaucerDesign(ctx, time, pulse) {
-    const size = 18; // Slightly larger for better detail
+    const size = 14;
+    const rotation = time * 3;
     
-    // Enhanced outer hull with multiple layers
-    const outerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.4);
-    outerGrad.addColorStop(0, this.color + '40');
-    outerGrad.addColorStop(0.8, this.color + '80');
-    outerGrad.addColorStop(1, 'transparent');
+    // Classic flying saucer with rotating dome
     
-    ctx.fillStyle = outerGrad;
-    ctx.beginPath();
-    ctx.scale(1.3, 0.6);
-    ctx.arc(0, 0, size * 1.2, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    ctx.scale(1/1.3, 1/0.6);
+    // Base disc
+    const discGrad = ctx.createRadialGradient(0, size * 0.3, 0, 0, size * 0.3, size * 1.5);
+    discGrad.addColorStop(0, this.color);
+    discGrad.addColorStop(0.5, '#666666');
+    discGrad.addColorStop(1, '#000000');
     
-    // Main saucer body with enhanced metallic gradient
-    const saucerGrad = ctx.createRadialGradient(0, -size * 0.2, 0, 0, 0, size * 1.2);
-    saucerGrad.addColorStop(0, '#ffffff');
-    saucerGrad.addColorStop(0.1, '#cccccc');
-    saucerGrad.addColorStop(0.3, this.color);
-    saucerGrad.addColorStop(0.7, this.color);
-    saucerGrad.addColorStop(1, '#111111');
-    
-    ctx.fillStyle = saucerGrad;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 1.5;
+    ctx.save();
+    ctx.scale(1, 0.3);
+    ctx.fillStyle = discGrad;
     ctx.shadowBlur = 8;
     ctx.shadowColor = this.color;
-    
     ctx.beginPath();
-    ctx.scale(1.3, 0.6);
-    ctx.arc(0, 0, size, 0, Gyruss.C.TWO_PI);
+    ctx.ellipse(0, size, size * 1.4, size * 1.4, 0, 0, Gyruss.C.TWO_PI);
     ctx.fill();
-    ctx.stroke();
-    ctx.scale(1/1.3, 1/0.6);
-
-    // Central command dome
-    const domeGrad = ctx.createRadialGradient(0, -size * 0.1, 0, 0, -size * 0.1, size * 0.4);
+    ctx.restore();
+    
+    // Rotating dome with segments
+    ctx.save();
+    ctx.rotate(rotation);
+    
+    const domeGrad = ctx.createRadialGradient(0, -size * 0.2, 0, 0, 0, size * 0.9);
     domeGrad.addColorStop(0, '#ffffff');
-    domeGrad.addColorStop(0.3, this.color + 'CC');
-    domeGrad.addColorStop(1, this.color + '40');
+    domeGrad.addColorStop(0.3, this.color);
+    domeGrad.addColorStop(0.7, '#444444');
+    domeGrad.addColorStop(1, '#000000');
     
     ctx.fillStyle = domeGrad;
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.1, size * 0.35, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-
-    // Command dome windows
-    ctx.fillStyle = '#88ccff';
     ctx.shadowBlur = 6;
-    ctx.shadowColor = '#88ccff';
-    ctx.globalAlpha = pulse * 0.8;
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Gyruss.C.TWO_PI + time;
-      const winX = Math.cos(angle) * size * 0.2;
-      const winY = Math.sin(angle) * size * 0.12 - size * 0.1;
-      ctx.beginPath();
-      ctx.arc(winX, winY, 1.5, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-
-    // Bottom hull section with detail
-    const bottomGrad = ctx.createLinearGradient(0, -size * 0.2, 0, size * 0.6);
-    bottomGrad.addColorStop(0, this.color);
-    bottomGrad.addColorStop(0.5, '#666666');
-    bottomGrad.addColorStop(1, '#222222');
-    
-    ctx.fillStyle = bottomGrad;
     ctx.beginPath();
-    ctx.scale(1.3, 0.6);
-    ctx.arc(0, size * 0.3, size * 0.8, 0, Math.PI);
+    ctx.arc(0, 0, size * 0.9, 0, Gyruss.C.TWO_PI);
     ctx.fill();
-    ctx.scale(1/1.3, 1/0.6);
-
-    // Hull armor plating
-    ctx.strokeStyle = this.color + '80';
+    
+    // Dome segments
+    ctx.strokeStyle = '#ffffff40';
     ctx.lineWidth = 1;
-    for (let i = 0; i < 3; i++) {
-      const radius = (size * 0.4) + (i * size * 0.2);
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Gyruss.C.TWO_PI;
       ctx.beginPath();
-      ctx.scale(1.3, 0.6);
-      ctx.arc(0, 0, radius, Math.PI * 0.2, Math.PI * 0.8);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(angle) * size * 0.9, Math.sin(angle) * size * 0.9);
       ctx.stroke();
-      ctx.scale(1/1.3, 1/0.6);
     }
-
-    // Enhanced edge lighting system
-    const lightCount = 12;
-    for (let i = 0; i < lightCount; i++) {
-      const angle = (i / lightCount) * Gyruss.C.TWO_PI + time * 0.5;
-      const lightX = Math.cos(angle) * size * 1.2;
-      const lightY = Math.sin(angle) * size * 0.72;
-      
-      const lightIntensity = 0.6 + Math.sin(time * 8 + i) * 0.4;
-      
-      // Outer glow
-      const lightGrad = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, 6);
-      lightGrad.addColorStop(0, this.color);
-      lightGrad.addColorStop(1, 'transparent');
-      
-      ctx.fillStyle = lightGrad;
-      ctx.globalAlpha = lightIntensity * 0.4;
-      ctx.beginPath();
-      ctx.arc(lightX, lightY, 4, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-      
-      // Core light
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowBlur = 3;
-      ctx.shadowColor = this.color;
-      ctx.globalAlpha = lightIntensity;
-      ctx.beginPath();
-      ctx.arc(lightX, lightY, 1.5, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-    }
+    ctx.restore();
+    
+    // Pulsing energy ring around edge
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = this.color;
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    ctx.arc(0, size * 0.1, size * 1.2, 0, Gyruss.C.TWO_PI);
+    ctx.stroke();
+    
+    // Spinning core light
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowBlur = 15;
+    ctx.globalAlpha = 0.8 + Math.sin(time * 6) * 0.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.25, 0, Gyruss.C.TWO_PI);
+    ctx.fill();
     
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
-
-    // Health indicator with enhanced design
-    if (this.health > 1) {
-      ctx.strokeStyle = '#ffff00';
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = '#ffff00';
-      ctx.beginPath();
-      ctx.scale(1.3, 0.6);
-      ctx.arc(0, 0, size + 4, 0, Gyruss.C.TWO_PI);
-      ctx.stroke();
-      ctx.scale(1/1.3, 1/0.6);
-      ctx.shadowBlur = 0;
-    }
   }
   
   drawFighterDesign(ctx, time, pulse) {
-    const size = 20; // Slightly larger for more detail
-    const shipVariant = Math.floor(this.angle * 3) % 3; // Different variants
+    const size = 12;
+    const variant = Math.floor(this.angle * 100) % 4;  // 4 variants based on spawn angle
     
-    if (shipVariant === 0) {
-      this.drawInterceptorFighter(ctx, time, pulse, size);
-    } else if (shipVariant === 1) {
-      this.drawHeavyFighter(ctx, time, pulse, size);
+    if (variant === 0) {
+      // Swept Delta Fighter - sleek attack craft
+      const bodyGrad = ctx.createLinearGradient(0, -size * 1.2, 0, size * 0.8);
+      bodyGrad.addColorStop(0, '#ffffff');
+      bodyGrad.addColorStop(0.2, this.color);
+      bodyGrad.addColorStop(0.8, '#222222');
+      bodyGrad.addColorStop(1, '#000000');
+      
+      ctx.fillStyle = bodyGrad;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = this.color;
+      
+      // Delta wing shape
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 1.3);  // Sharp nose
+      ctx.lineTo(-size * 1.1, size * 0.6);  // Left wing tip
+      ctx.lineTo(-size * 0.3, size * 0.8);  // Left engine
+      ctx.lineTo(0, size * 0.6);  // Center
+      ctx.lineTo(size * 0.3, size * 0.8);  // Right engine
+      ctx.lineTo(size * 1.1, size * 0.6);  // Right wing tip
+      ctx.closePath();
+      ctx.fill();
+      
+      // Cockpit canopy
+      const canopyGrad = ctx.createRadialGradient(0, -size * 0.4, 0, 0, -size * 0.4, size * 0.4);
+      canopyGrad.addColorStop(0, '#88ddff');
+      canopyGrad.addColorStop(0.6, '#4488cc60');
+      canopyGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = canopyGrad;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = '#88ddff';
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.5, size * 0.35, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      
+      // Twin engine glows
+      const engineGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.3);
+      engineGrad.addColorStop(0, '#ffffff');
+      engineGrad.addColorStop(0.4, '#ff6600');
+      engineGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = engineGrad;
+      ctx.globalAlpha = pulse;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ff6600';
+      ctx.beginPath();
+      ctx.arc(-size * 0.3, size * 0.7, size * 0.2, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(size * 0.3, size * 0.7, size * 0.2, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      
+    } else if (variant === 1) {
+      // Crystalline Scout - angular alien design
+      ctx.fillStyle = this.color;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = this.color;
+      
+      // Geometric crystal shape
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 1.2);
+      ctx.lineTo(-size * 0.5, -size * 0.4);
+      ctx.lineTo(-size * 0.9, size * 0.4);
+      ctx.lineTo(-size * 0.3, size * 0.9);
+      ctx.lineTo(0, size * 0.3);
+      ctx.lineTo(size * 0.3, size * 0.9);
+      ctx.lineTo(size * 0.9, size * 0.4);
+      ctx.lineTo(size * 0.5, -size * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      
+      // Energy shards
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.6 + Math.sin(time * 8) * 0.4;
+      ctx.shadowBlur = 8;
+      for (let i = 0; i < 3; i++) {
+        const y = -size * 0.6 + i * size * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.15, y);
+        ctx.lineTo(0, y - size * 0.2);
+        ctx.lineTo(size * 0.15, y);
+        ctx.lineTo(0, y + size * 0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+    } else if (variant === 2) {
+      // Heavy Bomber - bulky assault ship
+      const bodyGrad = ctx.createLinearGradient(0, -size, 0, size);
+      bodyGrad.addColorStop(0, this.color);
+      bodyGrad.addColorStop(0.4, '#555555');
+      bodyGrad.addColorStop(1, '#000000');
+      
+      ctx.fillStyle = bodyGrad;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = this.color;
+      
+      // Bulky hull
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.9);
+      ctx.lineTo(-size * 0.8, -size * 0.2);
+      ctx.lineTo(-size * 0.7, size * 0.8);
+      ctx.lineTo(-size * 0.3, size * 0.9);
+      ctx.lineTo(0, size * 0.7);
+      ctx.lineTo(size * 0.3, size * 0.9);
+      ctx.lineTo(size * 0.7, size * 0.8);
+      ctx.lineTo(size * 0.8, -size * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Armor plates
+      ctx.fillStyle = '#666666';
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.rect(-size * 0.4, -size * 0.3, size * 0.8, size * 0.5);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Weapon pods
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 8;
+      ctx.globalAlpha = 0.7 + Math.sin(time * 6) * 0.3;
+      for (let i = 0; i < 4; i++) {
+        const x = -size * 0.6 + i * size * 0.4;
+        ctx.beginPath();
+        ctx.arc(x, size * 0.1, size * 0.1, 0, Gyruss.C.TWO_PI);
+        ctx.fill();
+      }
+      
     } else {
-      this.drawAssaultFighter(ctx, time, pulse, size);
-    }
-  }
-  
-  drawInterceptorFighter(ctx, time, pulse, size) {
-    // Sleek interceptor design
-    const bodyGrad = ctx.createLinearGradient(0, -size, 0, size);
-    bodyGrad.addColorStop(0, '#ffffff');
-    bodyGrad.addColorStop(0.2, this.color);
-    bodyGrad.addColorStop(0.6, '#666666');
-    bodyGrad.addColorStop(1, '#222222');
-    
-    // Main hull - streamlined
-    ctx.fillStyle = bodyGrad;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = this.color;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 1.1);
-    ctx.lineTo(-size * 0.3, -size * 0.3);
-    ctx.lineTo(-size * 0.4, size * 0.7);
-    ctx.lineTo(0, size * 0.5);
-    ctx.lineTo(size * 0.4, size * 0.7);
-    ctx.lineTo(size * 0.3, -size * 0.3);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Cockpit canopy
-    const canopyGrad = ctx.createRadialGradient(0, -size * 0.3, 0, 0, -size * 0.3, size * 0.3);
-    canopyGrad.addColorStop(0, '#88ccff80');
-    canopyGrad.addColorStop(0.6, '#4499cc60');
-    canopyGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = canopyGrad;
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#88ccff';
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.4, size * 0.25, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Wing-mounted weapons
-    ctx.fillStyle = this.color;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.rect(-size * 0.25, -size * 0.1, size * 0.1, size * 0.3);
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.rect(size * 0.15, -size * 0.1, size * 0.1, size * 0.3);
-    ctx.fill();
-    ctx.stroke();
-    
-    // Twin engines
-    const engineGrad = ctx.createRadialGradient(0, size * 0.6, 0, 0, size * 0.6, size * 0.25);
-    engineGrad.addColorStop(0, '#ffffff');
-    engineGrad.addColorStop(0.3, '#ff6600');
-    engineGrad.addColorStop(0.7, '#ff0000');
-    engineGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = engineGrad;
-    ctx.globalAlpha = pulse;
-    ctx.beginPath();
-    ctx.arc(-size * 0.15, size * 0.6, size * 0.12, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.15, size * 0.6, size * 0.12, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-  }
-  
-  drawHeavyFighter(ctx, time, pulse, size) {
-    // Robust heavy fighter
-    const bodyGrad = ctx.createLinearGradient(0, -size, 0, size);
-    bodyGrad.addColorStop(0, this.color);
-    bodyGrad.addColorStop(0.3, '#555555');
-    bodyGrad.addColorStop(0.8, '#333333');
-    bodyGrad.addColorStop(1, '#111111');
-    
-    // Broader hull design
-    ctx.fillStyle = bodyGrad;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = this.color;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.9);
-    ctx.lineTo(-size * 0.7, 0);
-    ctx.lineTo(-size * 0.5, size * 0.8);
-    ctx.lineTo(0, size * 0.6);
-    ctx.lineTo(size * 0.5, size * 0.8);
-    ctx.lineTo(size * 0.7, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Armor plating
-    ctx.fillStyle = '#444444';
-    ctx.strokeStyle = this.color + '80';
-    ctx.lineWidth = 1;
-    
-    // Central armor plate
-    ctx.beginPath();
-    ctx.rect(-size * 0.15, -size * 0.4, size * 0.3, size * 0.6);
-    ctx.fill();
-    ctx.stroke();
-    
-    // Wing armor
-    ctx.beginPath();
-    ctx.rect(-size * 0.6, -size * 0.1, size * 0.25, size * 0.4);
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.rect(size * 0.35, -size * 0.1, size * 0.25, size * 0.4);
-    ctx.fill();
-    ctx.stroke();
-    
-    // Heavy weapons
-    ctx.fillStyle = this.color;
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = this.color;
-    
-    for (let i = 0; i < 4; i++) {
-      const x = (i - 1.5) * size * 0.15;
+      // Interceptor - fast attack variant
+      const bodyGrad = ctx.createLinearGradient(0, -size * 1.1, 0, size * 0.5);
+      bodyGrad.addColorStop(0, '#ffffff');
+      bodyGrad.addColorStop(0.15, this.color);
+      bodyGrad.addColorStop(0.7, '#444444');
+      bodyGrad.addColorStop(1, '#000000');
+      
+      ctx.fillStyle = bodyGrad;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = this.color;
+      
+      // Sleek narrow body
       ctx.beginPath();
-      ctx.arc(x, -size * 0.2, size * 0.04, 0, Gyruss.C.TWO_PI);
+      ctx.moveTo(0, -size * 1.2);
+      ctx.lineTo(-size * 0.4, -size * 0.3);
+      ctx.lineTo(-size * 0.6, size * 0.5);
+      ctx.lineTo(-size * 0.3, size * 0.7);
+      ctx.lineTo(0, size * 0.5);
+      ctx.lineTo(size * 0.3, size * 0.7);
+      ctx.lineTo(size * 0.6, size * 0.5);
+      ctx.lineTo(size * 0.4, -size * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Glowing wing tips
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = this.color;
+      ctx.globalAlpha = 0.8 + Math.sin(time * 12) * 0.2;
+      ctx.beginPath();
+      ctx.arc(-size * 0.6, size * 0.5, size * 0.15, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(size * 0.6, size * 0.5, size * 0.15, 0, Gyruss.C.TWO_PI);
+      ctx.fill();
+      
+      // Central energy core
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = pulse;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.2, 0, Gyruss.C.TWO_PI);
       ctx.fill();
     }
-    
-    // Main engine
-    const engineGrad = ctx.createRadialGradient(0, size * 0.6, 0, 0, size * 0.6, size * 0.3);
-    engineGrad.addColorStop(0, '#ffffff');
-    engineGrad.addColorStop(0.4, '#ff4444');
-    engineGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = engineGrad;
-    ctx.globalAlpha = pulse;
-    ctx.beginPath();
-    ctx.arc(0, size * 0.5, size * 0.2, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-  }
-  
-  drawAssaultFighter(ctx, time, pulse, size) {
-    // Angular assault fighter
-    const bodyGrad = ctx.createLinearGradient(0, -size, 0, size);
-    bodyGrad.addColorStop(0, '#ffffff');
-    bodyGrad.addColorStop(0.15, this.color);
-    bodyGrad.addColorStop(0.5, '#666666');
-    bodyGrad.addColorStop(1, '#222222');
-    
-    // Angular hull design
-    ctx.fillStyle = bodyGrad;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = this.color;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -size);
-    ctx.lineTo(-size * 0.4, -size * 0.6);
-    ctx.lineTo(-size * 0.8, size * 0.2);
-    ctx.lineTo(-size * 0.3, size * 0.8);
-    ctx.lineTo(0, size * 0.4);
-    ctx.lineTo(size * 0.3, size * 0.8);
-    ctx.lineTo(size * 0.8, size * 0.2);
-    ctx.lineTo(size * 0.4, -size * 0.6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Geometric details
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-size * 0.2, -size * 0.7);
-    ctx.lineTo(size * 0.2, -size * 0.7);
-    ctx.moveTo(-size * 0.3, 0);
-    ctx.lineTo(size * 0.3, 0);
-    ctx.stroke();
-    
-    // Wing-tip weapons
-    const weaponGlow = 0.6 + Math.sin(time * 12) * 0.4;
-    ctx.fillStyle = '#ff6600';
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = '#ff6600';
-    ctx.globalAlpha = weaponGlow;
-    
-    ctx.beginPath();
-    ctx.arc(-size * 0.7, size * 0.1, size * 0.06, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.7, size * 0.1, size * 0.06, 0, Gyruss.C.TWO_PI);
-    ctx.fill();
-    
-    // Vectored thrust engines
-    const engineGrad = ctx.createRadialGradient(0, size * 0.6, 0, 0, size * 0.6, size * 0.2);
-    engineGrad.addColorStop(0, '#ffffff');
-    engineGrad.addColorStop(0.5, '#0066ff');
-    engineGrad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = engineGrad;
-    ctx.globalAlpha = pulse;
-    
-    // Multiple small engines
-    const engines = [
-      {x: -size * 0.2, y: size * 0.7},
-      {x: 0, y: size * 0.3},
-      {x: size * 0.2, y: size * 0.7}
-    ];
-    
-    engines.forEach(engine => {
-      ctx.beginPath();
-      ctx.arc(engine.x, engine.y, size * 0.08, 0, Gyruss.C.TWO_PI);
-      ctx.fill();
-    });
     
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
