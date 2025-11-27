@@ -1,7 +1,39 @@
-# Copilot / AI Agent Instructions — Gyruss (HTML5)
+# Copilot / AI Agent Instructions — Gyruss
 
-Purpose: Quickly orient an AI coding agent to be productive in this repository.
+Purpose: Quickly orient an AI coding agent to be productive in this repository containing two implementations of the Gyruss arcade game.
 
+## Repository Structure
+
+This repository contains **two complete implementations** of the Gyruss arcade game:
+
+1. **`gyruss-html-js/`** — Original HTML5/JavaScript version (working reference implementation)
+2. **`gyruss-godot/`** — Godot Engine 4.5.1 port (faster but with missing features)
+
+**IMPORTANT**: When the user asks you to work on the project, determine which codebase they're referring to. The HTML/JS version is more feature-complete. The Godot version is faster but lacks many visual effects and polish.
+
+## Project-Specific Documentation
+
+Each implementation has its own comprehensive documentation:
+
+### For HTML/JS Implementation (`gyruss-html-js/`)
+- **ARCHITECTURE.md** — Technical architecture, rendering pipeline, coordinate systems
+- **PROJECT-OVERVIEW.md** — High-level game structure, entity relationships, game flow
+- **CODING-GUIDELINES.md** — Code style, naming conventions, patterns, best practices
+- **design.md** — Complete design specification with all features documented
+
+### For Godot Implementation (`gyruss-godot/`)
+- **ARCHITECTURE.md** — GDScript architecture, autoload singletons, scene structure
+- **PROJECT-OVERVIEW.md** — Godot-specific game structure, node hierarchy, signals
+- **CODING-GUIDELINES.md** — GDScript style, Godot conventions, performance patterns
+- **design.md** — Current implementation status and feature parity with HTML/JS
+
+Refer to the appropriate documentation files based on which codebase you're working with.
+
+---
+
+## HTML/JS Implementation (`gyruss-html-js/`)
+
+### Entry Point & Structure
 - **Entry point:** `index.html` (loads `src/utils.js`, `src/audio.js`, `src/entities.js`, `src/boss.js`, `src/game.js`).
 - **Authoritative code:** work in `src/` files. The modular `src/` files are the active codepath used by `index.html`.
 
@@ -64,3 +96,91 @@ Notes & pitfalls discovered in code:
 - Browser compatibility: Use `save()/scale()/arc()/fill()/restore()` pattern instead of `ellipse()` for better browser support.
 
 If anything here is unclear or you'd like me to expand examples (e.g., add a short patch that adds a new weapon or upgrade), tell me which area to update and I'll iterate.
+---
+
+## Godot Implementation (`gyruss-godot/`)
+
+### Entry Point & Structure
+- **Entry point:** `scenes/main.tscn` (main game scene with MainRenderer and UIRenderer nodes).
+- **Project file:** `project.godot` (Godot 4.5.1 project configuration).
+- **Authoritative code:** `scripts/` folder containing autoloads, entities, bosses, and rendering systems.
+
+### Architecture (big picture):
+- **Constants** (`scripts/autoload/constants.gd`) — global constants singleton (screen size, weapons, upgrades, math utilities).
+- **GameManager** (`scripts/autoload/game_manager.gd`) — singleton game state, main loop, spawn/flow logic, entity management.
+- **InputHandler** (`scripts/autoload/input_handler.gd`) — centralized input handling for all controls.
+- **AudioManager** (`scripts/autoload/audio_manager.gd`) — placeholder sound system (prints to console).
+- **MainRenderer** (`scripts/rendering/main_renderer.gd`) — global canvas with 14-layer rendering pipeline.
+- **UIRenderer** (`scripts/rendering/ui_renderer.gd`) — HUD overlay on CanvasLayer for UI elements.
+- Entity classes (`scripts/entities/`) — PlayerEntity, EnemyEntity, BulletEntity, MissileEntity, SatelliteEntity, Particle (all use class_name for global access).
+- Boss classes (`scripts/bosses/`) — BossBase, CosmicSerpent, StarDestroyer, GalacticCore.
+
+### Key patterns & conventions (Godot-specific):
+- Global class names: All entities and bosses use `class_name` to be globally accessible without preload.
+- Dictionary-based entities: Enemies, bullets, missiles, satellites stored as Dictionary objects in arrays on GameManager.
+- Polar coordinates: Identical system to HTML/JS (angle + radius). Use `Constants.polar_to_cartesian()` and `Constants.wrap_angle()`.
+- Autoload singletons: Access via `GameManager`, `Constants`, `InputHandler`, `AudioManager` from any script.
+- Global rendering: Single MainRenderer._draw() method handles all visual layers (no per-node _draw() calls).
+
+### Dev workflows / how to run locally:
+- **Requirements:** Godot Engine 4.5.1 (download from https://godotengine.org/download)
+- **Open project:** Import → Navigate to `gyruss-godot/project.godot` → Import & Edit
+- **Run game:** Press F5 or click Play button
+- **Controls:** Same as HTML/JS version (←/→, Space, T, W, B, M, S, R)
+
+### Known Limitations (see differences.md for full list):
+- Audio is placeholder (console prints only, no actual sounds)
+- Missing visual effects: nebula background, enhanced particle trails, screen shake
+- Simplified boss graphics compared to HTML/JS version
+- No extra life system at score thresholds
+- Weapon effects less spectacular than HTML/JS
+
+### Examples of common edits and where to make them:
+- Add/change weapons: update `Constants.WEAPONS` dict, implement firing in `player.gd`, add visuals in `main_renderer.gd`.
+- New upgrade/power-up: add to `Constants.UPGRADES` and implement in `PlayerEntity.apply_upgrade()`.
+- New boss: create class in `scripts/bosses/` inheriting from BossBase, add to `GameManager.create_boss()`.
+- New enemy/wave pattern: add spawn function in `GameManager`, use `EnemyEntity.create()` factory.
+- Audio changes: edit `audio_manager.gd` (currently placeholder, needs Web Audio API equivalent).
+- Visual effects: enhance `main_renderer.gd` drawing functions, add particle types in `create_particle()`.
+
+### Integration points / external dependencies:
+- Godot Engine 4.5.1 required (earlier versions may have compatibility issues)
+- No external assets currently (all graphics drawn procedurally in _draw())
+- Future: Add sprite sheets in `assets/` folder for enhanced graphics
+
+### Editing guidance / safety:
+- Prefer editing `scripts/` files (modular structure matching HTML/JS).
+- Keep autoload singletons intact (other scripts depend on them).
+- Use class_name instead of const preload to avoid "duplicate name" warnings.
+- Always test in Godot editor after changes (no external build step).
+
+### Notes & pitfalls discovered in code:
+- **Coordinate system:** Enemies spawn at NEGATIVE radius, move INWARD. Stars spawn at center, move OUTWARD.
+- **Weapon persistence:** Weapons persist through warps (same as HTML/JS). Reset only on life loss.
+- **Warp counter:** 3 warps per planet, tracked by `warps_to_planet` (decrements each warp).
+- **Boss destruction:** Uses `is_destroying` flag and `death_timer` for cinematic sequences.
+- **Ternary operators:** GDScript doesn't support `condition ? true : false`. Use `if/else` or inline `true if condition else false`.
+- **Dictionary syntax:** Use `.get("key", default)` for safe access instead of direct `dict["key"]`.
+
+---
+
+## Determining Which Codebase to Work On
+
+When the user makes a request, use these guidelines:
+
+1. **Explicit mentions:** If user says "HTML version", "JavaScript version", "Godot version", "Godot port" — work on that specific codebase.
+2. **File path clues:** If they reference `src/` files → HTML/JS. If they reference `scripts/` or `.gd` files → Godot.
+3. **Context clues:** 
+   - "Visual effects", "polish", "enhanced graphics" → likely HTML/JS (more complete)
+   - "Performance", "faster", "Godot issues" → likely Godot version
+4. **Default:** If ambiguous, ask which version they want to work with, or propose changes to both if applicable.
+
+## Cross-Implementation Knowledge Transfer
+
+When porting features from HTML/JS to Godot:
+- HTML Canvas → Godot _draw() with draw_* methods
+- requestAnimationFrame → _process(delta) or _physics_process(delta)
+- JavaScript classes → GDScript classes with class_name
+- Array methods (push, filter, map) → GDScript equivalents (append, in-place removal, comprehensions)
+- Math.PI → PI constant, Math.random() → randf()
+- Web Audio API → Godot AudioStreamPlayer nodes (future enhancement)
